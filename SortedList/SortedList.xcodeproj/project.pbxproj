@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		7C643DEF1A98E1E600B3D166 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C643DEE1A98E1E600B3D166 /* main.c */; };
+		7C643DF71A991CCC00B3D166 /* sorted-list.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C643DF61A991CCC00B3D166 /* sorted-list.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,6 +26,8 @@
 /* Begin PBXFileReference section */
 		7C643DEB1A98E1E600B3D166 /* SortedList */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SortedList; sourceTree = BUILT_PRODUCTS_DIR; };
 		7C643DEE1A98E1E600B3D166 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		7C643DF51A98FCC400B3D166 /* sorted-list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "sorted-list.h"; sourceTree = "<group>"; };
+		7C643DF61A991CCC00B3D166 /* sorted-list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "sorted-list.c"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +61,8 @@
 			isa = PBXGroup;
 			children = (
 				7C643DEE1A98E1E600B3D166 /* main.c */,
+				7C643DF51A98FCC400B3D166 /* sorted-list.h */,
+				7C643DF61A991CCC00B3D166 /* sorted-list.c */,
 			);
 			path = SortedList;
 			sourceTree = "<group>";
@@ -118,6 +123,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C643DF71A991CCC00B3D166 /* sorted-list.c in Sources */,
 				7C643DEF1A98E1E600B3D166 /* main.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
