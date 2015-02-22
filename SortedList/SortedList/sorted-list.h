@@ -33,6 +33,8 @@ typedef struct SortedList* SortedListPtr;
  */
 struct SortedListIterator
 {
+    Node prev_node;
+    Node curr_node;
 };
 typedef struct SortedListIterator* SortedListIteratorPtr;
 
@@ -171,8 +173,6 @@ void * SLNextItem(SortedListIteratorPtr iter);
  * die is a utility function which terminates the program and
  * attempts to print a helpful error messge;
  */
-
-void die(const char * message);
 
 
 #endif

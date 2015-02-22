@@ -72,7 +72,7 @@ int main(int argc, const char * argv[]) {
     strcpy(str2, "this is a longer string so I can test the comparator");
     strcpy(str3, "this is an even longer string so I can test the comparator");
     strcpy(str4, "this is a super duper mooper long string so I can test this stuff");
-    strcpy(str5, "this is a short string");
+    strcpy(str5, "this is a short stringmk");
     
     SortedListPtr list = SLCreate(comparator, destructor);
     
@@ -80,26 +80,46 @@ int main(int argc, const char * argv[]) {
     
     SLInsert(list, &str3);
     
-    SLInsert(list, &str2);
-    
     SLInsert(list, &str0);
     
     SLInsert(list, &str4);
     
     SLInsert(list, &str5);
     
-    SLInsert(list, &str2);
-
+   // SLInsert(list, &str2);
+    
+    SortedListIteratorPtr iter = SLCreateIterator(list);
     
     Node curr = NULL;
     
     printf("%d\n",list->nodes);
     
+    //SLRemove(list, &str0);
+    //SLRemove(list, &str4);
+    //SLRemove(list, &str2);
+    
+    //65 58 52 22 22 11
+   // printf("%d\n",list->nodes);
+    
+    printf("testing iter GET: %lu\n",strlen(*((char**)SLGetItem(iter)))); //65
+
+ 
+    printf("testing iter NEXT: %lu\n",strlen(*((char**)SLNextItem(iter)))); //58
+    SLInsert(list, &str4);
+    printf("testing iter NEXT: %lu\n",strlen(*((char**)SLNextItem(iter)))); //52
+    printf("testing iter NEXT: %lu\n",strlen(*((char**)SLNextItem(iter)))); //22
+    
+    
+
+    SLDestroyIterator(iter);
+    
     for(curr = list->next; curr != NULL; curr = curr->next)
     {
-        printf("output: %lu\n", strlen(*((char**)curr->Object)));
+        printf("output strlen: %lu\n", strlen(*((char**)curr->Object)));
+        printf("output refcount: %d\n", curr->ref_count);
     }
     
+    SLDestroy(list);
     
     return 0;
 

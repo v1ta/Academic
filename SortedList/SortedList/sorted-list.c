@@ -47,7 +47,38 @@ Node SLNCreate(void *newObj)
     return new_node; //return new node with default values;
 }
 
-void SLDestroy(SortedListPtr list);
+void SLDestroy(SortedListPtr list)
+{
+    //check to make sure a valid list was passed
+    if (!list)
+    {
+        return;
+    }
+    else if (!list->next) //if valid check if it contains at least 1 node
+    {
+        free(list);
+        return;
+    }
+    
+    //set up temp variables for LL traversal
+    Node curr = list->next;
+    Node prev = curr;
+    
+    //free nodes in O(n) time
+    while(curr->next)
+    {
+        curr = curr->next;
+        free(prev);
+        prev = curr;
+    }
+
+    free(curr);
+    free(list); //free the head
+    
+    return;
+}
+
+
 
 
 int SLInsert(SortedListPtr list, void *newObj)
@@ -69,9 +100,10 @@ int SLInsert(SortedListPtr list, void *newObj)
     Node temp = (Node)malloc(sizeof(struct SortedListNode));
     Node prev = NULL; // Previous entry
     
+    //Traverse list in O(n) (worst case),
     for (curr = list->next; curr!=NULL; curr = curr->next)
     {
-        curr->ref_count++; //increment reference count while using object;
+        curr->ref_count++; //let the program know this node is being referenced
         
         if (list->comparator(curr->Object, newObj) > 0)
         {
@@ -97,7 +129,6 @@ int SLInsert(SortedListPtr list, void *newObj)
         }
         else if (list->comparator(curr->Object, newObj) == 0)
         {
-             printf("test\n");
     
             //new Objec is equal in size, so it is safe to insert it @ next;
             temp = curr->next;
@@ -152,18 +183,148 @@ int SLInsert(SortedListPtr list, void *newObj)
 }
 
 
-int SLRemove(SortedListPtr list, void *newObj);
+int SLRemove(SortedListPtr list, void *newObj)
+{
+    //check for valid input;
+    if(!list || !newObj)
+        return 0;
+    else if(list->nodes < 1) //make sure list has contents before executing search
+        return 0;
+    
+    //make a copy of the address
+    void *data = newObj;
+    
+    //prepare LL traversal
+    Node curr = list->next;
+    Node prev = NULL;
+    
+    
+    //Traverse in O(n) worst case
+    while(curr)
+    {
+        //let the program know this node is being referenced
+        curr->ref_count++;
+        
+        //check if node contains object, destroy if it does.
+        if (curr->Object == data)
+        {
+            //this object is in use by another part of the program
+            if (curr->ref_count > 1) {
+                if(prev)
+                    prev->ref_count--;
+                curr->ref_count--;
+                return 0;
+            }
+            
+            list->destruct(curr->Object);
+            list->nodes--;
+            
+            //relink list
+            if (!prev)
+                list->next = curr->next;
+            else{
+                prev->next = curr->next;
+                prev->ref_count--;
+            }
+            
+            free(curr);
+            
+            return 1;
+        }
+        
+        if(prev)
+            prev->ref_count--; //tell the program this node has been left
+        
+        prev = curr;
+        curr = curr->next;
+    }
+    
+    return 0;
+}
 
 
-SortedListIteratorPtr SLCreateIterator(SortedListPtr list);
+SortedListIteratorPtr SLCreateIterator(SortedListPtr list)
+{
+    //check for a valid list, then check if the list has at least one node.
+    if(!list)
+        return NULL;
+    else if (list->nodes < 1)
+        return NULL;
+    
+    SortedListIteratorPtr iter = (SortedListIteratorPtr)malloc(sizeof(struct SortedListIterator));
+    
+    //set iterator to front of list
+    iter->curr_node = list->next;
+    iter->curr_node->ref_count++;
+    
+    return iter;
+}
 
 
-void SLDestroyIterator(SortedListIteratorPtr iter);
+void SLDestroyIterator(SortedListIteratorPtr iter)
+{
+    //check for valid input
+    if(!iter)
+        return;
+    
+    //not sure if this is necessary, but it makes sure the iterator isn't pointing towards anything.
+    iter->curr_node->ref_count--;
+    iter->curr_node = NULL;
+    
+    //check if @ beginning of list
+    if(iter->prev_node)
+    {
+        iter->prev_node->ref_count--;
+        iter->prev_node = NULL;
+    }
+    
+    free(iter);
+    
+    return;
+}
 
 
 
-void * SLGetItem( SortedListIteratorPtr iter );
+void * SLGetItem(SortedListIteratorPtr iter )
+{
+    //check for valid input
+    if (!iter)
+        return 0;
+    
+    return iter->curr_node->Object;
+}
 
 
 
-void * SLNextItem(SortedListIteratorPtr iter);
+void * SLNextItem(SortedListIteratorPtr iter)
+{
+    //check for valid iterator
+    if(!iter)
+        return NULL;
+    
+    //check for end of list
+    if(!iter->curr_node->next)
+    {
+        printf("test\n");
+        return NULL;
+    }
+    
+    //check to see if at beginning of list
+    if (iter->prev_node)
+        iter->prev_node->ref_count--;
+    
+    //increment
+    iter->prev_node = iter->curr_node;
+    iter->curr_node = iter->curr_node->next;
+    iter->curr_node->ref_count++;
+    
+    //return object
+    return iter->curr_node->Object;
+}
+
+
+
+
+
+
+
