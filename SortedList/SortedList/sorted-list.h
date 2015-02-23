@@ -9,6 +9,7 @@
  */
 struct SortedListNode
 {
+    int is_ghost; //this value will "turn off a node" without freeing it from heap
     void *Object; //the address of the object being stored
     int ref_count; //the amount external references to the object
     struct SortedListNode *next; //a pointer to the next node, NULL if end of list
@@ -70,7 +71,8 @@ typedef void (*DestructFuncT)( void * );
 
 SortedListPtr SLCreate(CompareFuncT cf, DestructFuncT df);
 
-/* This function creates a new node for SortList. The caller must provide
+/*
+ * This function creates a new node for SortList. The caller must provide
  * an object address (void *). This function does not handle where in the list
  * the new object is placed. Returns NULL on failure.
  */

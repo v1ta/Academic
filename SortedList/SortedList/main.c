@@ -86,9 +86,10 @@ int main(int argc, const char * argv[]) {
     
     SLInsert(list, &str5);
     
-   // SLInsert(list, &str2);
+    SLInsert(list, &str2);
     
     SortedListIteratorPtr iter = SLCreateIterator(list);
+    SortedListIteratorPtr iter2 = SLCreateIterator(list);
     
     Node curr = NULL;
     
@@ -98,21 +99,35 @@ int main(int argc, const char * argv[]) {
     //SLRemove(list, &str4);
     //SLRemove(list, &str2);
     
-    //65 58 52 22 22 11
+    //65 58 52 24 22 11
    // printf("%d\n",list->nodes);
     
-    printf("testing iter GET: %lu\n",strlen(*((char**)SLGetItem(iter)))); //65
+    //printf("testing iter GET: %lu\n",strlen(*((char**)SLGetItem(iter)))); //65
 
  
     printf("testing iter NEXT: %lu\n",strlen(*((char**)SLNextItem(iter)))); //58
-    SLInsert(list, &str4);
-    printf("testing iter NEXT: %lu\n",strlen(*((char**)SLNextItem(iter)))); //52
-    printf("testing iter NEXT: %lu\n",strlen(*((char**)SLNextItem(iter)))); //22
+    printf("testing iter2 NEXT: %lu\n",strlen(*((char**)SLNextItem(iter2)))); //58
+    printf("testing iter2 NEXT: %lu\n",strlen(*((char**)SLNextItem(iter2)))); //52
+    SLRemove(list, &str3); //nuke 58
+    SLRemove(list, &str2); //nuke 52
+    SLRemove(list, &str1); //nuke 22
+    SLRemove(list, &str5); //nuke 24
+    SLRemove(list, &str0); //nuke 11
+    printf("%d\n",list->nodes);
+    SLInsert(list, &str1);
+        printf("%d\n",list->nodes);
+    //SLNextItem(iter);
+    //printf("testing iter NEXT: %lu\n",strlen(*((char**)SLNextItem(iter)))); //21
     
     
 
-    SLDestroyIterator(iter);
-    
+    //SLDestroyIterator(iter);
+    //SLDestroyIterator(iter2);
+    printf("freeing iterators\n");
+    SLInsert(list, &str5);
+    printf("%d\n",list->nodes);
+    SLInsert(list, &str0);
+        printf("%d\n",list->nodes);
     for(curr = list->next; curr != NULL; curr = curr->next)
     {
         printf("output strlen: %lu\n", strlen(*((char**)curr->Object)));
@@ -131,8 +146,8 @@ int comparator(void *o1, void *o2)
     return (int)strlen(*((char**)o1)) - (int)strlen(*((char**)o2));
 }
 
-void destructor(void *list){
-    
+void destructor(void *o){
+    //free(o);
 }
 
 

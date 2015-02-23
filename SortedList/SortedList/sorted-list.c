@@ -94,33 +94,89 @@ int SLInsert(SortedListPtr list, void *newObj)
         list->next = SLNCreate(newObj);
         list->nodes++;
         return 1;
+    }else if (!list->next->Object) //first node is a ghost node
+    {
+        printf("FIRST NODE GHOST ADD\n");
+        list->next->Object = newObj;
+        return 1;
     }
     
     Node curr = NULL; // LL iterator
-    Node temp = (Node)malloc(sizeof(struct SortedListNode));
+    Node temp = NULL;//(Node)malloc(sizeof(struct SortedListNode));
     Node prev = NULL; // Previous entry
     
     //Traverse list in O(n) (worst case),
     for (curr = list->next; curr!=NULL; curr = curr->next)
     {
-        curr->ref_count++; //let the program know this node is being referenced
+        
+    GARBAGE_COLLECTION:
+        /*
+         * Due to the requirement that we use a singly linked list,
+         * running into a ghost node presents us with a few natrual options.
+         * If we opt to re-use the node as opposed to trashing it, we'd have to
+         * do a signficant amount of jumps not only to compare, but to relink. 
+         * Given that all of the jumps would require extra functions, or extra
+         * variables, I've opted to simply delete the node as I've dedued that 
+         * it would be more efficent for the insert method as a whole. Also
+         * this isn't the only function capable of garbage collection. It is being 
+         * add here for the efficency gain do to LL searh being O(n) time, it makes
+         * sense to shorten said (n) if given the oppurtunity as opposed to 
+         * favoring encapsulation (imo). 
+         */
+
+            
+        if (curr)
+        {
+            
+            if (!curr->Object)
+            {
+            //make sure the node isn't being referenced
+                if(curr->ref_count == 0)
+                {
+                    //check to see if its the first node in the list
+                    if (!prev){
+                        list->next = curr->next;
+                    }else{
+                        prev->next = curr->next;
+                    }
+                    temp = curr;
+                    curr = curr->next;
+                    free(temp);
+                    list->nodes--;
+                
+                /*
+                 * A jump statment here is necessary as simply executing continue
+                 * would not allow us to actually free the node.
+                */
+                    goto GARBAGE_COLLECTION;
+                
+                }
+                else //incase the ghost object has an iterator
+                {
+                    prev = curr;
+                    curr = curr->next;
+                    goto GARBAGE_COLLECTION;
+                }
+            
+            }
+        }
+        else //ran into end of list
+        {
+            curr = SLNCreate(newObj);
+            list->nodes++;
+            prev->next = curr;
+            break;
+        }
         
         if (list->comparator(curr->Object, newObj) > 0)
         {
             if (curr->next == NULL)
             {
                 curr->next = SLNCreate(newObj);
-                curr->ref_count--;
                 list->nodes++;
-                
-                if (prev)
-                    prev->ref_count--;
                 
                 break;
             }
-
-            if (prev)
-                prev->ref_count--;
             
             prev = curr;
             
@@ -134,11 +190,7 @@ int SLInsert(SortedListPtr list, void *newObj)
             temp = curr->next;
             curr->next = SLNCreate(newObj);
             curr->next->next = temp;
-            curr->ref_count--;
             list->nodes++;
-            
-            if (prev)
-                prev->ref_count--;
             
             break;
         }
@@ -151,11 +203,7 @@ int SLInsert(SortedListPtr list, void *newObj)
                 list->next->next = curr;
 
   
-                curr->ref_count--;
                 list->nodes++;
-                
-                if (prev)
-                    prev->ref_count--;
                 
                 break;
             }
@@ -164,17 +212,13 @@ int SLInsert(SortedListPtr list, void *newObj)
                 //new object is larger, so insert @ previous node
                 prev->next = SLNCreate(newObj);
                 prev->next->next = curr;
-                curr->ref_count--;
                 list->nodes++;
                 
-                if (prev)
-                    prev->ref_count--;
+
                 
                 break;
             }
         }
-        if(prev)
-            prev->ref_count--; //no longer visiting node, decrement reference count
         
         prev = curr; //previous will always be one behind current
     }
@@ -202,18 +246,16 @@ int SLRemove(SortedListPtr list, void *newObj)
     //Traverse in O(n) worst case
     while(curr)
     {
-        //let the program know this node is being referenced
-        curr->ref_count++;
+
         
         //check if node contains object, destroy if it does.
         if (curr->Object == data)
         {
             //this object is in use by another part of the program
-            if (curr->ref_count > 1) {
-                if(prev)
-                    prev->ref_count--;
-                curr->ref_count--;
-                return 0;
+            if (curr->ref_count > 0)
+            {
+                curr->Object = NULL;
+                return 1; //object freed, but node becomes ghost
             }
             
             list->destruct(curr->Object);
@@ -224,16 +266,12 @@ int SLRemove(SortedListPtr list, void *newObj)
                 list->next = curr->next;
             else{
                 prev->next = curr->next;
-                prev->ref_count--;
             }
             
             free(curr);
             
             return 1;
         }
-        
-        if(prev)
-            prev->ref_count--; //tell the program this node has been left
         
         prev = curr;
         curr = curr->next;
@@ -291,7 +329,13 @@ void * SLGetItem(SortedListIteratorPtr iter )
     if (!iter)
         return 0;
     
-    return iter->curr_node->Object;
+    //Make sure an object exists. 
+    if (iter->curr_node->Object) {
+        return iter->curr_node->Object;
+    }
+    
+    return 0;
+    
 }
 
 
@@ -305,18 +349,31 @@ void * SLNextItem(SortedListIteratorPtr iter)
     //check for end of list
     if(!iter->curr_node->next)
     {
-        printf("test\n");
         return NULL;
     }
     
-    //check to see if at beginning of list
-    if (iter->prev_node)
-        iter->prev_node->ref_count--;
+
     
     //increment
-    iter->prev_node = iter->curr_node;
-    iter->curr_node = iter->curr_node->next;
-    iter->curr_node->ref_count++;
+    
+    do{
+        //This checks to make sure the next node isn't end of list
+        if (!iter->curr_node->next)
+            return NULL;
+        
+        //check to see if at beginning of list
+        if (iter->prev_node)
+            iter->prev_node->ref_count--;
+        
+        iter->prev_node = iter->curr_node;
+        iter->curr_node = iter->curr_node->next;
+        iter->curr_node->ref_count++;
+    }while(!iter->curr_node->Object);
+    
+    /*
+     * loop until valid node found, it will essentially check if the current
+     * node is a ghost node, if it is, it will jump to the next.
+     */
     
     //return object
     return iter->curr_node->Object;
