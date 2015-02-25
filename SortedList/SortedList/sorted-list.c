@@ -94,13 +94,14 @@ int SLInsert(SortedListPtr list, void *newObj)
         list->next = SLNCreate(newObj);
         list->nodes++;
         return 1;
-    }else if (!list->next->Object) //first node is a ghost node
+    }
+    /*
+    else if (!list->next->Object) //first node is a ghost node
     {
-        printf("FIRST NODE GHOST ADD\n");
         list->next->Object = newObj;
         return 1;
     }
-    
+    */
     Node curr = NULL; // LL iterator
     Node temp = NULL;//(Node)malloc(sizeof(struct SortedListNode));
     Node prev = NULL; // Previous entry
@@ -124,7 +125,7 @@ int SLInsert(SortedListPtr list, void *newObj)
          * favoring encapsulation (imo). 
          */
 
-            
+        
         if (curr)
         {
             
@@ -144,10 +145,7 @@ int SLInsert(SortedListPtr list, void *newObj)
                     free(temp);
                     list->nodes--;
                 
-                /*
-                 * A jump statment here is necessary as simply executing continue
-                 * would not allow us to actually free the node.
-                */
+             
                     goto GARBAGE_COLLECTION;
                 
                 }
@@ -167,6 +165,7 @@ int SLInsert(SortedListPtr list, void *newObj)
             prev->next = curr;
             break;
         }
+
         
         if (list->comparator(curr->Object, newObj) > 0)
         {
@@ -232,6 +231,7 @@ int SLRemove(SortedListPtr list, void *newObj)
     //check for valid input;
     if(!list || !newObj)
         return 0;
+    
     else if(list->nodes < 1) //make sure list has contents before executing search
         return 0;
     
@@ -246,15 +246,19 @@ int SLRemove(SortedListPtr list, void *newObj)
     //Traverse in O(n) worst case
     while(curr)
     {
-
-        
+        if (curr->Object) //ghost node
+        {
+            
         //check if node contains object, destroy if it does.
-        if (curr->Object == data)
+        if (list->comparator(curr->Object,data) == 0)
         {
             //this object is in use by another part of the program
             if (curr->ref_count > 0)
             {
-                curr->Object = NULL;
+                //curr->Object = NULL;
+                list->destruct(curr->Object);
+                if(curr->Object)
+                    curr->Object = NULL;
                 return 1; //object freed, but node becomes ghost
             }
             
@@ -272,6 +276,7 @@ int SLRemove(SortedListPtr list, void *newObj)
             
             return 1;
         }
+        }
         
         prev = curr;
         curr = curr->next;
@@ -285,9 +290,14 @@ SortedListIteratorPtr SLCreateIterator(SortedListPtr list)
 {
     //check for a valid list, then check if the list has at least one node.
     if(!list)
+    {
         return NULL;
+        
+    }
     else if (list->nodes < 1)
+    {
         return NULL;
+    }
     
     SortedListIteratorPtr iter = (SortedListIteratorPtr)malloc(sizeof(struct SortedListIterator));
     
@@ -306,14 +316,15 @@ void SLDestroyIterator(SortedListIteratorPtr iter)
         return;
     
     //not sure if this is necessary, but it makes sure the iterator isn't pointing towards anything.
-    iter->curr_node->ref_count--;
-    iter->curr_node = NULL;
+    if (iter->curr_node) {
+        iter->curr_node->ref_count--;
+    }
+
     
     //check if @ beginning of list
     if(iter->prev_node)
     {
         iter->prev_node->ref_count--;
-        iter->prev_node = NULL;
     }
     
     free(iter);
@@ -329,6 +340,10 @@ void * SLGetItem(SortedListIteratorPtr iter )
     if (!iter)
         return 0;
     
+    //check if iterator advanced passed list.
+    if(!iter->curr_node)
+        return 0;
+    
     //Make sure an object exists. 
     if (iter->curr_node->Object) {
         return iter->curr_node->Object;
@@ -342,13 +357,18 @@ void * SLGetItem(SortedListIteratorPtr iter )
 
 void * SLNextItem(SortedListIteratorPtr iter)
 {
-    //check for valid iterator
+
     if(!iter)
+    {
+        return NULL;
+    }
+    else if (!iter->curr_node) // at end of list
         return NULL;
     
     //check for end of list
     if(!iter->curr_node->next)
     {
+        iter->curr_node = NULL;
         return NULL;
     }
     
