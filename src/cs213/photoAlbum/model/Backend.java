@@ -1,48 +1,126 @@
 package cs213.photoAlbum.model;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 
 
 /**
- * Backend will implement a 3 Hashmaps to store objects, the maps hash functions will be 
- * controlled by the preceeding object in the hierarchy User --> Album --> Photos. All memebrs
- * and functions are accessed via model link. Members are package private unless stated otherwise.
+ * Backend holds the top level of the current data structure.
  * @author Joseph
  *
  */
-public class Backend{
-	
-
-	private static HashMap<String,User> UserMap;
-	private static HashMap<String,Album> AlbumMap;
-	private static  HashMap<String,Photo> PhotoMap;
+public class Backend implements Serializable, BackEndHash{
 	
 	/**
-	 * This will allow access to the Hashmap via the modellink interface which will contain all the users of the application
-	 * @return
+	 * 
 	 */
-	static HashMap<String,User> getUserMap() {
-		return UserMap;
+	private static final long serialVersionUID = 1L;
+	private transient ObjectInputStream in;
+	private transient ObjectOutputStream out;
+	
+	private HashMap<String, User> users;
+	
+	public Backend()
+	{
+		this.users = new HashMap<String, User>();
 	}
 	
-	/**
-	 * This will allow access to the Hashmap, via the modellink interface which will contain all the albums of the application
-	 * @return
-	 */
-	static HashMap<String,Album> getAlbumMap() {
-		return AlbumMap;
+	@SuppressWarnings("unchecked")
+	public void loadPhotoAlbum(){
+		
+		try {
+			
+			this.in = new ObjectInputStream(new FileInputStream("object.ser"));
+			this.users = (HashMap<String, User>) in.readObject();
+			
+		} catch (IOException e) {
+
+			System.out.print("");
+		} catch (ClassNotFoundException e) {
+			
+			e.printStackTrace();
+		}
 	}
 	
-	/**
-	 * This will allow access to the Hashmap, via the modellink interface which will contain all the photo of the application
-	 * @return
-	 */
-	static HashMap<String,Photo> getPhotoMap() {
-		return PhotoMap;
+	public void savePhotoAlbum(){
+		
+		try {
+			
+			this.out = new ObjectOutputStream(new FileOutputStream("object.ser"));
+			this.out.writeObject(this.users);
+			this.out.close();
+			
+		} catch (IOException e) {
+			
+			System.out.print("");
+		}
 	}
 
+	public User getUser(String userID){
+		
+		if(userID != null && !userID.isEmpty()){
+			
+			return users.get(userID);
+		}
+		
+		return null;
+	}
 	
+	public boolean hasUser(String userID){
+		
+		return this.users.containsKey(userID);
+	}
+	
+	public boolean addUser(String userID, String userName){
+		
+		if(userID != null && !userID.isEmpty()){
+			
+			if(!users.containsKey(userID)){
+				
+				users.put(userID, new User(userName,userID));
+				return true;
+				
+			}
+		}
+		
+		return false;
+	}
+	
+	public boolean delUser(String userID){
+		
+		if(userID != null && !userID.isEmpty()){ 
+			
+			if(users.get(userID) != null){
+				
+				users.remove(userID);
+				return true;
+			}
+		}
+		
+		return false; 
+	}
+	
+	public List<String> listUsers(){
+		
+		return new ArrayList<String>(users.keySet());
+		
+	}
 
+	public boolean readUsersfileIO() {
+		return false;
+	}
 
+	public boolean writeUsersfileIO() {
+		return false;
+	}
+	
+	
 }

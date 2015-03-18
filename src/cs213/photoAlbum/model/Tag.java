@@ -2,7 +2,6 @@ package cs213.photoAlbum.model;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.List;
 
 
 /**
@@ -13,65 +12,37 @@ import java.util.List;
  * @author Joseph
  *
  */
+@SuppressWarnings("serial")
 public class Tag implements Serializable{
 	
-	private static final long serialVersionUID = 1L;
-	private static ArrayList<String> locations;
-	private static ArrayList<String> people;
-	private static ArrayList<List<String>> miscTags;
+	private String tagName;
+	private String tagType;
+	private ArrayList<Photo> photo;
 	
-	private ArrayList<Integer> location;
-	private ArrayList<Integer> poeple;
-	private ArrayList<Integer> miscTag;
+	public Tag(String tagType, String tagName){
+		this.tagName = tagName;
+		this.tagType = tagType;
+		this.photo = new ArrayList<Photo>();
+	}
 	
-	Tag(){}
-
-	/**
-	 * Provides access to the repository of location tags, via model link
-	 * @return
-	 */
-	static ArrayList<String> getLocations() {
-		return locations;
+	public String toString(){
+		return this.tagType + ":" + this.tagName;
 	}
-
-	/**
-	 * provides access to the repository of MiscTags, via model link
-	 * @return
-	 */
-	static ArrayList<List<String>> getMiscTags() {
-		return miscTags;
+	
+	public String getTagData(){
+		return this.tagName;
 	}
-
-	/**
-	 * provides access to the indexing array for a tag object, via model link
-	 * @return
-	 */
-	ArrayList<Integer> getPoeple() {
-		return poeple;
+	
+	public String getTagType(){
+		return this.tagType;
 	}
-
-	/**
-	 * Provides access to the people tag repository, via model link
-	 * @return
-	 */
-	static ArrayList<String> getPeople() {
-		return people;
+	
+	public void addPhoto(Photo photo){
+		this.photo.add(photo);
 	}
-
-	/**
-	 * provides access to the indexing element of tag object for location tags, via model link
-	 * @return
-	 */
-	ArrayList<Integer> getLocation() {
-		return location;
-	}
-
-	/**
-	 * provides indexing to the tag object for misc tags via model link
-	 * @return
-	 */
-	ArrayList<Integer> getMiscTag() {
-		return miscTag;
+	
+	public ArrayList<Photo> photosWithThisTag(){
+		return this.photo;
 	}
 
  }
