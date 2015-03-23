@@ -5,43 +5,83 @@ import java.util.ArrayList;
 import util.Location;
 import model.Player.PlayerType;
 
-public abstract class Piece{
+public abstract class Piece implements Cloneable{
 	
-	protected Boolean alive;
+	protected Boolean alive = true;
 	protected String asciiModel;
 	protected PlayerType owner;
 	protected ArrayList<Location> validMoves;
 	protected int[][] moveset;
+	protected int[][] sMoveset;
 	protected int numMoves;
-	/*
+	protected Location currentPos;
+	protected boolean atStart = true;
+	protected Location ghost;
+	protected int turnsAlive;
+	protected int upgradeLoc;
+	protected static int pieceCount;
+	protected int pieceID;
+	protected boolean isCopy = false;
 	
-	
-	 * all chess piece move-set (minus pawn) by Juilian Garnier https://github.com/juliangarnier
-	 * each number corresponds to a certain move set, particular pieces are an aggregate of move sets.
-	 *
-	protected static int[][] attacks = {
-		{ 20, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0, 0,20},
-		{ 0,20, 0, 0, 0, 0, 0, 24,  0, 0, 0, 0, 0,20, 0},
-		{ 0, 0,20, 0, 0, 0, 0, 24,  0, 0, 0, 0,20, 0, 0},
-		{ 0, 0, 0,20, 0, 0, 0, 24,  0, 0, 0,20, 0, 0, 0},
-		{ 0, 0, 0, 0,20, 0, 0, 24,  0, 0,20, 0, 0, 0, 0},
-		{ 0, 0, 0, 0, 0,20, 2, 24,  2,20, 0, 0, 0, 0, 0},
-		{ 0, 0, 0, 0, 0, 2,53, 56, 53, 2, 0, 0, 0, 0, 0},
-	    { 24,24,24,24,24,24,56,  0, 56,24,24,24,24,24,24}, //7,7 = piece
-	    { 0, 0, 0, 0, 0, 2,53, 56, 53, 2, 0, 0, 0, 0, 0},
-	    { 0, 0, 0, 0, 0,20, 2, 24,  2,20, 0, 0, 0, 0, 0},
-	    { 0, 0, 0, 0,20, 0, 0, 24,  0, 0,20, 0, 0, 0, 0},
-	    { 0, 0, 0,20, 0, 0, 0, 24,  0, 0, 0,20, 0, 0, 0},
-	    { 0, 0,20, 0, 0, 0, 0, 24,  0, 0, 0, 0,20, 0, 0},
-	    { 0,20, 0, 0, 0, 0, 0, 24,  0, 0, 0, 0, 0,20, 0},
-	    { 20, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0, 0, 20}
-	};
-	
-	*/
-	
-	public Piece(){
+	public Piece(Location currentPos){
 		
 		this.alive = true;
+		this.validMoves = new ArrayList<Location>();
+		this.currentPos = currentPos;
+		this.pieceID = pieceCount;
+		pieceCount++;
+	}
+	
+	public Piece(Piece piece){
+		
+		this.isCopy = true;
+		this.pieceID = piece.pieceID;
+		
+		if(piece.alive)
+			this.alive = true;
+		else
+			this.alive = false;
+		
+		this.asciiModel = piece.asciiModel;
+		
+		if(piece.owner.toString().equals("White"))
+			this.owner = PlayerType.White;
+		else
+			this.owner = PlayerType.Black;
+		
+		this.numMoves = piece.numMoves;
+		this.currentPos = new Location(piece.currentPos.getI(), piece.currentPos.getJ());
+		this.atStart = piece.atStart;
+		if(piece.getGhost() != null)
+			this.ghost = new Location(piece.getGhost().getI(), piece.getGhost().getJ());
+		this.turnsAlive = piece.turnsAlive;
+		this.upgradeLoc = piece.upgradeLoc;
+		
+		this.validMoves = new ArrayList<Location>();
+		
+		for(int i = 0; i < piece.validMoves.size(); i++){
+			this.validMoves.add(new Location(piece.validMoves.get(i).getI(), piece.validMoves.get(i).getJ()));
+		}
+		
+		if(!(piece instanceof Enpassant)){
+		this.moveset = new int[piece.moveset.length][2];
+		
+		for(int i = 0; i < piece.moveset.length; i++){
+			for(int j = 0; j < 2; j++){
+				this.moveset[i][j] = piece.moveset[i][j];
+			}
+		}
+		
+		if(piece.asciiModel.charAt(1) == 'p' || piece.asciiModel.charAt(1) == 'K'){
+			this.sMoveset = new int[piece.sMoveset.length][2];
+			
+			for(int i = 0; i < piece.sMoveset.length; i++){
+				for(int j = 0; j < 2; j++){
+					this.sMoveset[i][j] = piece.sMoveset[i][j];
+				}
+			}
+		}
+		}
 	}
 	
 	public void kill(){
@@ -79,10 +119,78 @@ public abstract class Piece{
 		return this.validMoves;
 	}
 	
+	public void resetValidMoves(){
+		
+		this.validMoves.clear();
+	}
 	
+	public Location getPos(){
+		return this.currentPos;
+	}
 	
+	public void updatePos(Location pos){
+		
+		this.currentPos = pos;
+	}
 	
+	public boolean atStart(){
+		
+		return this.atStart;
+	}
 	
+	public void hasMoved(){
+		this.atStart = false;
+	}
 	
-
+	public int[][] getSMoveSet(){
+		
+		return this.sMoveset;
+	}
+	
+	public Location getGhost(){
+		return this.ghost;
+	}
+	
+	public int getTurns(){
+		return this.turnsAlive;
+	}
+	
+	public void incrementTurn(){
+		this.turnsAlive++;
+	}
+	
+	public void delMove(Location moveToDel){
+		this.validMoves.remove(moveToDel);
+	}
+	public int getID(){
+		return this.pieceID;
+	}
+	
+	public int getUpgradeLoc(){
+		
+		return this.upgradeLoc;
+	}
+	
+	public boolean isCopy(){
+		return this.isCopy;
+	}
+	
+	public Piece getClone(){
+		try {
+			return (Piece) this.clone();
+		} catch (CloneNotSupportedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	@Override
+	protected Object clone() throws CloneNotSupportedException {
+		Piece cloned = (Piece)super.clone();
+		return cloned;
+	}
+	
 }
+

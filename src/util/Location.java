@@ -18,6 +18,10 @@ public class Location {
 		return this.j;
 	}
 	
+	public String toString(){
+		return this.i + " " + this.j;
+	}
+	
 	public boolean equals(Object o){
 		
 		if( o instanceof Location){

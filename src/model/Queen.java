@@ -1,12 +1,14 @@
 package model;
 
+import util.Location;
 import model.Player.PlayerType;
 
 public class Queen extends Piece{
 
-	public Queen(PlayerType owner){
+	public Queen(PlayerType owner, Location currentPos){
 		
-		if(owner == PlayerType.BLACK){
+		super(currentPos);
+		if(owner == PlayerType.Black){
 			
 			this.asciiModel = "bQ";
 		}else{
@@ -17,6 +19,10 @@ public class Queen extends Piece{
 		this.owner = owner;
 		this.moveset = new int[][] {{1,1}, {-1,1}, {-1,-1}, {1, -1}, {1,0}, {0,1}, {-1,0}, {0,-1}};
 		this.numMoves = 7;
+	}
+	
+	public Queen(Piece piece){
+		super(piece);
 	}
 
 }

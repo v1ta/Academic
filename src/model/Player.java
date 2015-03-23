@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public class Player {
 	
-	protected static enum PlayerType { BLACK , WHITE };
+	public static enum PlayerType { Black , White };
 	private static int playerCount;
 	private PlayerType player;
 	private ArrayList<Piece> captured;
@@ -13,9 +13,9 @@ public class Player {
 	public Player(){
 		
 		if(playerCount == 0)
-			this.player = PlayerType.WHITE;
+			this.player = PlayerType.White;
 		else if(playerCount == 1)
-			this.player = PlayerType.BLACK;
+			this.player = PlayerType.Black;
 		else
 			throw new IllegalArgumentException("Chess only supports two players.");
 		
@@ -32,6 +32,12 @@ public class Player {
 		
 		captured.add(piece);
 	}
-
-
+	
+	public String toString(){
+		if(this.player == PlayerType.White){
+			return "White";
+		}else{
+			return "Black";
+		}
+	}
 }
