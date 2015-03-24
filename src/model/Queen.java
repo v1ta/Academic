@@ -1,14 +1,18 @@
 package model;
 
 import util.Location;
-import model.Player.PlayerType;
 
+/**
+ * Queen object
+ * @author Joseph
+ *
+ */
 public class Queen extends Piece{
 
-	public Queen(PlayerType owner, Location currentPos){
+	public Queen(String owner, Location currentPos){
 		
 		super(currentPos);
-		if(owner == PlayerType.Black){
+		if(owner.equals("Black")){
 			
 			this.asciiModel = "bQ";
 		}else{

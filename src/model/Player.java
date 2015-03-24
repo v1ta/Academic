@@ -2,20 +2,25 @@ package model;
 
 import java.util.ArrayList;
 
+/**
+ * Player object
+ * @author Joseph
+ *
+ */
 public class Player {
 	
-	public static enum PlayerType { Black , White };
+	
 	private static int playerCount;
-	private PlayerType player;
+	private String player;
 	private ArrayList<Piece> captured;
 	
 	
 	public Player(){
 		
 		if(playerCount == 0)
-			this.player = PlayerType.White;
+			this.player = "White";
 		else if(playerCount == 1)
-			this.player = PlayerType.Black;
+			this.player = "Black";
 		else
 			throw new IllegalArgumentException("Chess only supports two players.");
 		
@@ -24,7 +29,7 @@ public class Player {
 
 	}
 	
-	public PlayerType getType(){
+	public String toString(){
 		return this.player;
 	}
 	
@@ -32,12 +37,5 @@ public class Player {
 		
 		captured.add(piece);
 	}
-	
-	public String toString(){
-		if(this.player == PlayerType.White){
-			return "White";
-		}else{
-			return "Black";
-		}
-	}
+
 }

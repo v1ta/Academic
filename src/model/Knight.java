@@ -1,14 +1,19 @@
 package model;
 
 import util.Location;
-import model.Player.PlayerType;
 
+
+/**
+ * Knight object
+ * @author Joseph
+ *
+ */
 public class Knight extends Piece{
 
-	public Knight(PlayerType owner, Location currentPos){
+	public Knight(String owner, Location currentPos){
 		
 		super(currentPos);
-		if(owner == PlayerType.Black){
+		if(owner.equals("Black")){
 			
 			this.asciiModel = "bN";
 		}else{

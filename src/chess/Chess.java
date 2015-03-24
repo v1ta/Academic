@@ -1,4 +1,4 @@
-package view;
+package chess;
 
 import java.util.ArrayList;
 import java.util.StringTokenizer;
@@ -15,7 +15,11 @@ import model.Piece;
 import model.Player;
 import model.Queen;
 import model.Rook;
-
+/**
+ * View
+ * @author Joseph
+ *
+ */
 public class Chess implements AsciiChess{
 	
 	private static int turns = 0;
@@ -47,7 +51,7 @@ public class Chess implements AsciiChess{
 			}
 			
 			input = game.input().nextLine();
-			System.out.println("\n");
+
 			
 			moves = chess.parseInput(input);
 			
@@ -58,12 +62,17 @@ public class Chess implements AsciiChess{
 			
 			if(moves.size() == 1){
 				if(moves.get(0).getI() == 0){
+					if(Chess.turns % 2 == 0){
+						System.out.println("\nBlack wins");
+					}else{
+						System.out.println("\nWhite wins");
+					}
 					break;
 				}else if(moves.get(0).getI() == 1 && chess.drawFlag()){
-					System.out.println("Draw\n");
+					System.out.println("\nDraw\n");
 					break;
 				}else{
-					System.out.println("Illegal input\n");
+					System.out.println("\nIllegal input");
 					continue;
 				}
 			}
@@ -73,6 +82,7 @@ public class Chess implements AsciiChess{
 				if(chess.movePiece(game.getPiece(moves.get(0)), game, moves.get(1), playerWhite)){
 					Chess.turns++;
 				}else{
+					System.out.println("Illegal move, try again");
 					continue;
 				}
 				
@@ -82,6 +92,7 @@ public class Chess implements AsciiChess{
 				if(chess.movePiece(game.getPiece(moves.get(0)), game, moves.get(1), playerBlack)){
 					Chess.turns++;
 				}else{
+					System.out.println("Illegal move, try again");
 					continue;
 				}
 				
@@ -93,22 +104,34 @@ public class Chess implements AsciiChess{
 				if(chess.blackCheck()){
 					if(chess.checkMate(game, playerBlack)){
 						game.printBoard();
-						System.out.println("White wins\n");
+						System.out.println("Checkmate\n\nWhite wins\n");
 						break;
 					}
 					System.out.println("Check");
 				}else if(chess.whiteCheck()){
 					if(chess.checkMate(game, playerWhite)){
 						game.printBoard();
-						System.out.println("Black wins\n");
+						System.out.println("Checkmate\n\nBlack wins\n");
 						break;
 					}
 					System.out.println("Check\n");
+				}else{
+					if(Chess.turns % 2 == 0){
+						if(chess.stalemate(game, playerWhite)){
+							System.out.println("\nStalemate\n\nDraw");
+							break;
+						}
+					}else{
+						if(chess.stalemate(game, playerBlack)){
+							System.out.println("\nStalemate\n\nDraw");
+							break;
+						}
+					}
 				}
 				
+				
 			
-			
-		}
+		
 			if(chess.drawFlag()){
 				
 				chess.toggleDrawFlag();
@@ -118,10 +141,9 @@ public class Chess implements AsciiChess{
 				
 				chess.toggleDrawFlag();
 			}
-			
-			
-		
-				game.closeInput();
+	
+		}
+			game.closeInput();
 	}
 	
 	
@@ -197,7 +219,7 @@ public class Chess implements AsciiChess{
 			
 			
 			int[][] vectors = piece.getMoveSet();
-			//System.out.println("CALCULATING MOVESET FOR: " + piece);
+			
 			
 			//iterate through moveset unit vectors
 			for(int index = 0; index < vectors.length; index++){
@@ -216,26 +238,25 @@ public class Chess implements AsciiChess{
 				jOff = piece.getPos().getJ();
 				//iterate max length of moves;
 				for(int offset = 0; offset < moveDist; offset++){
-					//System.out.println("INNER LOOP, OFFSET: " + offset + "  INDEX: " + index);
+					
 					iOff += vectors[index][0];
 					jOff += vectors[index][1];
 					
 					if((iOff >= 0 && iOff <= 7) && (jOff >= 0 && jOff <= 7)){
 						
-						//if(piece instanceof Queen && piece.getOwner().toString().equals("Black")){
-						//	System.out.println("COORDS: "+ iOff + "   " + jOff + "  CALLING ISEMPTY: " + board.isEmpty(iOff, jOff));
-						//}
 						
 						if(board.isEmpty(iOff, jOff)){
 							piece.addValidMove(new Location(iOff,jOff));
 							
 								
-						}else if(piece.getOwner() != board.getPiece(new Location(iOff, jOff)).getOwner()){
-							
+						}else if(!(piece.getOwner().equals(board.getPiece(new Location(iOff, jOff)).getOwner()))){
+							if(piece instanceof Pawn){
+								break;
+							}
 
 							piece.addValidMove(new Location(iOff,jOff));
 							if(board.getPiece(new Location(iOff, jOff)) instanceof King && !(piece instanceof King)){
-								if(board.getPiece(new Location(iOff, jOff)).getOwner().toString().equals("White")){
+								if(board.getPiece(new Location(iOff, jOff)).getOwner().equals("White")){
 									whiteCheck = true;
 								}else{
 									blackCheck = true;
@@ -243,7 +264,7 @@ public class Chess implements AsciiChess{
 							}
 							break;
 						}else{
-							//System.out.println("CAL MOVE SET FRIENDLY PIECE: "+ iOff + " " + jOff);
+		
 							//friendly piece, break;
 							break;
 						}
@@ -272,7 +293,7 @@ public class Chess implements AsciiChess{
 					
 					for(int offset = 0; offset < sMoveDist; offset++){
 						
-						//System.out.println("INNER LOOP, OFFSET: " + offset + "  INDEX: " + index);
+				
 						iOff += sVectors[index][0];
 						jOff += sVectors[index][1];
 						
@@ -281,18 +302,18 @@ public class Chess implements AsciiChess{
 	
 							
 							if(!board.isEmpty(iOff, jOff) || board.isEnpassant(iOff, jOff)){
-								if(piece.getOwner() != board.getPiece(new Location(iOff, jOff)).getOwner()){
+								if(!(piece.getOwner().equals(board.getPiece(new Location(iOff, jOff)).getOwner()))){
 									
 										
 									
 						
 									//enemy piece, break (need to add checking mate checking)
-									//System.out.println("CAL MOVE SET TEST FINAL MOVE: "+ iOff + " " + jOff);
-									//System.out.println("added move for: " + piece + " at " + piece.getPos() + " with move " + iOff + " " + jOff);
+									
+							
 									piece.addValidMove(new Location(iOff,jOff));
 									
 									if(board.getPiece(new Location(iOff, jOff)) instanceof King){
-										if(board.getPiece(new Location(iOff, jOff)).getOwner().toString().equals("White")){
+										if(board.getPiece(new Location(iOff, jOff)).getOwner().equals("White")){
 											whiteCheck = true;
 										}else{
 											blackCheck = true;
@@ -300,7 +321,7 @@ public class Chess implements AsciiChess{
 									}
 									break;
 								}else{
-									//	System.out.println("CAL MOVE SET FRIENDLY PIECE: "+ iOff + " " + jOff);
+								
 									//friendly piece, break;
 									break;
 								}
@@ -343,7 +364,7 @@ public class Chess implements AsciiChess{
 										if(!board.isEmpty(iOff, jOff + sVectors[index][1])){
 											
 											
-											if((piece.getOwner() == board.getPiece(new Location(iOff, jOff + sVectors[index][1])).getOwner()) && (board.getPiece(new Location(iOff, jOff + sVectors[index][1])) instanceof Rook) && (board.getPiece(new Location(iOff, jOff + sVectors[index][1])).atStart())){
+											if((piece.getOwner().equals(board.getPiece(new Location(iOff, jOff + sVectors[index][1])).getOwner())) && (board.getPiece(new Location(iOff, jOff + sVectors[index][1])) instanceof Rook) && (board.getPiece(new Location(iOff, jOff + sVectors[index][1])).atStart())){
 												
 												piece.addValidMove(new Location(iOff,jOff));
 												
@@ -355,7 +376,7 @@ public class Chess implements AsciiChess{
 											if(!board.isEmpty(iOff, jOff + 2*sVectors[index][1])){
 												
 
-												if((piece.getOwner() == board.getPiece(new Location(iOff, jOff + 2*sVectors[index][1])).getOwner()) && (board.getPiece(new Location(iOff, jOff + 2*sVectors[index][1])) instanceof Rook) && (board.getPiece(new Location(iOff, jOff + 2*sVectors[index][1])).atStart()) && (board.isEmpty(iOff, jOff + sVectors[index][1]))) {
+												if((piece.getOwner().equals(board.getPiece(new Location(iOff, jOff + 2*sVectors[index][1])).getOwner())) && (board.getPiece(new Location(iOff, jOff + 2*sVectors[index][1])) instanceof Rook) && (board.getPiece(new Location(iOff, jOff + 2*sVectors[index][1])).atStart()) && (board.isEmpty(iOff, jOff + sVectors[index][1]))) {
 													
 													piece.addValidMove(new Location(iOff,jOff));
 													break;
@@ -388,7 +409,8 @@ public class Chess implements AsciiChess{
 		
 		
 		if(piece == null){
-			System.out.println("Illegal selection: there is no piece at that locaiton\n");
+			return false;
+		}else if(!(piece.getOwner().equals(player.toString()))){
 			return false;
 		}
 		
@@ -415,7 +437,6 @@ public class Chess implements AsciiChess{
 		
 		if(validMoves == null){
 			
-			System.out.println("Illegal move, no valid moves for this piece, try again\n");
 			return false; //piece has no valid moves
 		}
 		
@@ -428,11 +449,7 @@ public class Chess implements AsciiChess{
 		}
 				
 		if(!validMoveFlag){
-			System.out.println("Illegal move, invalid move selected, try again\n");
 			
-			for(Location validMove : validMoves){
-				System.out.println(validMove);
-			}
 			return false;
 		}
 				if(tempB != null && temp != null){
@@ -442,11 +459,9 @@ public class Chess implements AsciiChess{
 					
 					if(player.toString().equals("White") && whiteCheck){
 						
-						System.out.println("Illegal move, in check, try again\n");
 						return false;
-					}else if(blackCheck){
+					}else if(blackCheck && player.toString().equals("Black")){
 						
-						System.out.println("Illegal move, in check try again\n");
 						return false;
 					}
 				}
@@ -479,7 +494,7 @@ public class Chess implements AsciiChess{
 	
 	public boolean checkMate(Board board, Player player) {
 		
-		
+
 		String target = "";
 		
 		if(player.toString().equals("White")){
@@ -490,6 +505,7 @@ public class Chess implements AsciiChess{
 		
 		Piece kingInCheck = null;
 		
+		//find king in check;
 		outerloop:
 		for(int i = 0; i < 8; i++){
 			for(int j = 0; j < 8; j++){
@@ -504,7 +520,9 @@ public class Chess implements AsciiChess{
 		}
 	
 
-		
+		//check if available king moves won't put the king in check
+		//cycle all enemy pieces 
+		outerloop2:
 		for(int i = 0; i < 8; i++){
 			for(int j = 0; j < 8; j++){
 				
@@ -512,8 +530,8 @@ public class Chess implements AsciiChess{
 				if(piece == null){
 					continue;
 					
-				}else if(piece.getOwner() == kingInCheck.getOwner()){
-					
+				}else if(piece.getOwner().equals(kingInCheck.getOwner())){
+					//if piece is identical, +1 on loop
 					continue;
 						
 				}
@@ -521,67 +539,75 @@ public class Chess implements AsciiChess{
 				ArrayList<Location> kingMoves = kingInCheck.getValidMoves();
 				ArrayList<Location> pieceMoves = piece.getValidMoves();
 				
+				//if no valid moves on enemy piece, +1 on loop
 				if(pieceMoves.size() == 0){
 					continue;
 				}
 				
+				if(kingMoves.size() == 0){
+					break outerloop2;
+				}
+				outerloop3:
 				for(int x = 0; x < kingMoves.size(); x++){
-	
+					for(int z = 0; z < pieceMoves.size(); z++){
 						
-						if(pieceMoves.contains(kingMoves.get(x))){
+						if((pieceMoves.get(z).getI() == kingMoves.get(x).getI()) && (pieceMoves.get(z).getJ() == kingMoves.get(x).getJ())){
 							
 							kingInCheck.delMove(kingMoves.get(x));
+							if(x >= kingMoves.size()){
+								break outerloop3;
+							}
 						}
-					
+					}
 				}
 	
 						
 						
-					
+		
 				
 				
 			}
 		}
 		
-		
+		//check is friendly pieces can remove check
 		for(int i = 0; i < 8; i++){
 			for(int j = 0; j < 8; j++){
 				
 				Piece piece = board.getPiece(new Location(i,j));
 				
-				if(piece == null){
+				if(piece == null || piece instanceof Enpassant){
 					continue;
 					
-				}else if(piece.getOwner() != kingInCheck.getOwner()){
+				}else if(!(piece.getOwner().equals(kingInCheck.getOwner()))){
 					
 					continue;
 						
 				}
 				
+
 				
-				Piece temp = null;
-				
-				if(piece instanceof Pawn){
-					temp = new Pawn(piece);
-				}else if(piece instanceof Rook){
-					temp = new Rook(piece);
-				}else if(piece instanceof Knight){
-					temp = new Knight(piece);
-				}else if(piece instanceof Bishop){
-					temp = new Bishop(piece);
-				}else if(piece instanceof Queen){
-					temp = new Queen(piece);
-				}else{
-					temp = new King(piece);
-				}
-				
-				ArrayList<Location> moves = temp.getValidMoves();
+				ArrayList<Location> moves = piece.getValidMoves();
 				
 				if(moves.size() == 0)
 					continue;
 				
 				for( int e = 0; e < moves.size(); e++){
 					
+					Piece temp = null;
+					
+					if(piece instanceof Pawn){
+						temp = new Pawn(piece);
+					}else if(piece instanceof Rook){
+						temp = new Rook(piece);
+					}else if(piece instanceof Knight){
+						temp = new Knight(piece);
+					}else if(piece instanceof Bishop){
+						temp = new Bishop(piece);
+					}else if(piece instanceof Queen){
+						temp = new Queen(piece);
+					}else{
+						temp = new King(piece);
+					}
 					
 					
 					Board tempBoard = new Board(board);
@@ -594,17 +620,31 @@ public class Chess implements AsciiChess{
 					if(player.toString().equals("White")){
 						
 						if(!whiteCheck){
-							
+				
 							return false;
+							
 						}
 						
 					}else{
 						
 						if(!blackCheck){
-							
+				
 							return false;
 						}
 					}
+				}
+				
+				Piece testKing = new King(kingInCheck);
+				ArrayList<Location> kingMoves2 = testKing.getValidMoves();
+				for(int r = 0; r < kingMoves2.size(); r++){
+					
+					Board tempBoard = new Board(board);
+					
+					if(!movePiece(testKing, tempBoard, kingMoves2.get(r), player)){
+						kingInCheck.delMove(kingMoves2.get(r));
+					}
+				
+	
 				}
 				
 				
@@ -613,16 +653,12 @@ public class Chess implements AsciiChess{
 		}
 		
 		if(kingInCheck.getValidMoves().size() == 0){
+		
 			return true;
 		}else{
+			System.out.println("king has moves");
 			return false;
 		}
-	}
-
-
-	public boolean staleMate(Board board) {
-		// TODO Auto-generated method stub
-		return false;
 	}
 
 
@@ -651,7 +687,7 @@ public class Chess implements AsciiChess{
 				
 				if(!((int)userCommands.get(i).charAt(0) - 97 >= 0 && (int)userCommands.get(i).charAt(0) - 97 < 8)){
 
-					System.out.println("Error: please enter a valid board location, i.e. \"e5\"\n");
+					System.out.println("Error: please enter a valid board location, i.e. \"e5\"");
 					return null;
 				}
 				
@@ -659,7 +695,7 @@ public class Chess implements AsciiChess{
 			}
 	
 			if(userCommands.size() == 5){
-				if(!userCommands.get(4).equals("draw?")){
+				if(!userCommands.get(4).equalsIgnoreCase("draw?")){
 					
 					System.out.println("Error: The only accepted command following board locations is \"draw?\"");
 					return null;
@@ -686,9 +722,69 @@ public class Chess implements AsciiChess{
 					
 		}
 		
-		System.out.println("Error: Improper input, please use <piece location> <location to move> [\"draw?\"]\n");
+		System.out.println("Error: Improper input, please use <piece location> <location to move> [\"draw?\"]");
 		return null;
 		
+	}
+	
+	public boolean stalemate(Board board, Player player){
+		
+		for(int i = 0; i < 8; i++){
+			for(int j = 0; j < 8; j++){
+				
+				Piece piece = board.getPiece(new Location(i,j));
+				
+				if(piece == null){
+					continue;
+				}else if(!(piece.getOwner().equals(player.toString()))){
+					continue;
+				}
+				
+				 ArrayList<Location> moves = piece.getValidMoves();
+				 
+				 for(Location test : moves){
+					 
+						Piece temp = null;
+						
+						if(piece instanceof Pawn){
+							temp = new Pawn(piece);
+						}else if(piece instanceof Rook){
+							temp = new Rook(piece);
+						}else if(piece instanceof Knight){
+							temp = new Knight(piece);
+						}else if(piece instanceof Bishop){
+							temp = new Bishop(piece);
+						}else if(piece instanceof Queen){
+							temp = new Queen(piece);
+						}else{
+							temp = new King(piece);
+						}
+						
+						
+						Board tempBoard = new Board(board);
+						
+						tempBoard.updateBoard(temp, test);
+						
+						calculateMoves(tempBoard);
+						
+						if(player.toString().equals("White")){
+							
+							if(!whiteCheck){
+								return false;
+							}
+						}else{
+							
+							if(!blackCheck){
+								return false;
+							}
+						}
+					 
+				 }
+				
+			}
+		}
+		
+		return true;
 	}
 
 

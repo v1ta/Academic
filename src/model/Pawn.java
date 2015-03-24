@@ -1,14 +1,19 @@
 package model;
 
 import util.Location;
-import model.Player.PlayerType;
 
+
+/**
+ * Pawn object
+ * @author Joseph
+ *
+ */
 public class Pawn extends Piece{
 	
-	public Pawn(PlayerType owner, Location currentPos){
+	public Pawn(String owner, Location currentPos){
 		
 		super(currentPos);
-		if(owner == PlayerType.Black){
+		if(owner.equals("Black")){
 			
 			this.asciiModel = "bp";
 			this.upgradeLoc = 7;

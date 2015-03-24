@@ -1,5 +1,10 @@
 package util;
 
+/**
+ * Location object
+ * @author Joseph
+ *
+ */
 public class Location {
 
 	private int i;

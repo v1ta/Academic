@@ -3,13 +3,18 @@ package model;
 import java.util.ArrayList;
 
 import util.Location;
-import model.Player.PlayerType;
 
+
+/**
+ * Abstract piece object
+ * @author Joseph
+ *
+ */
 public abstract class Piece implements Cloneable{
 	
 	protected Boolean alive = true;
 	protected String asciiModel;
-	protected PlayerType owner;
+	protected String owner;
 	protected ArrayList<Location> validMoves;
 	protected int[][] moveset;
 	protected int[][] sMoveset;
@@ -44,10 +49,7 @@ public abstract class Piece implements Cloneable{
 		
 		this.asciiModel = piece.asciiModel;
 		
-		if(piece.owner.toString().equals("White"))
-			this.owner = PlayerType.White;
-		else
-			this.owner = PlayerType.Black;
+		this.owner = piece.owner;
 		
 		this.numMoves = piece.numMoves;
 		this.currentPos = new Location(piece.currentPos.getI(), piece.currentPos.getJ());
@@ -109,7 +111,7 @@ public abstract class Piece implements Cloneable{
 		this.validMoves.add(location);
 	}
 	
-	public PlayerType getOwner(){
+	public String getOwner(){
 		
 		return this.owner;
 	}

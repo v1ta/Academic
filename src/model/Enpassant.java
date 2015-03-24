@@ -1,12 +1,17 @@
 package model;
 
-import model.Player.PlayerType;
+
 import util.Location;
 
+/**
+ * Enpassant object
+ * @author Joseph
+ *
+ */
 public class Enpassant extends Piece{
 
 	
-	public Enpassant(PlayerType owner, Location location, Location ghost){
+	public Enpassant(String owner, Location location, Location ghost){
 		
 		super(location);
 		this.owner = owner;

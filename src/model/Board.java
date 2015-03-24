@@ -3,8 +3,13 @@ package model;
 import java.util.Scanner;
 
 import util.Location;
-import model.Player.PlayerType;
 
+
+/**
+ * Board object
+ * @author Joseph
+ *
+ */
 public class Board implements Cloneable{
 
 	private Piece[][] cells;
@@ -45,6 +50,7 @@ public class Board implements Cloneable{
 	
 	public void printBoard(){
 		
+		System.out.println();
 		for(int i = 0; i < 8; i++){
 			for(int j = 0; j < 8; j++){
 				
@@ -113,9 +119,9 @@ public class Board implements Cloneable{
 
 	public boolean loadPlayer(Player player){
 		
-		PlayerType owner = player.getType();
+		String owner = player.toString();
 		
-		if(owner == PlayerType.Black){
+		if(owner.equals("Black")){
 			
 			this.cells[0][0] = new Rook(owner, new Location(0,0));
 			this.cells[0][1] = new Knight(owner, new Location(0,1));
@@ -134,7 +140,7 @@ public class Board implements Cloneable{
 			return true;
 			
 
-		}else if(owner == PlayerType.White){
+		}else if(owner.equals("White")){
 			
 			for(int i = 0; i < 8; i++){
 				
@@ -253,6 +259,10 @@ public class Board implements Cloneable{
 	
 	public void updatePiece(Piece piece){
 		
+		if(piece.isCopy){
+			return;
+		}
+		
 		String input;
 		char choice = ' ';
 		
@@ -287,7 +297,7 @@ public class Board implements Cloneable{
 				this.cells[piece.getPos().getI()][piece.getPos().getJ()] = new Rook(piece.getOwner(), piece.getPos());
 				break;
 			default:
-				
+				System.out.println("Illegal input, please enter a valid option");
 			}
 		
 	}

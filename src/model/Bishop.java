@@ -1,14 +1,18 @@
 package model;
 
 import util.Location;
-import model.Player.PlayerType;
 
+/**
+ * Bishop Object
+ * @author Joseph
+ *
+ */
 public class Bishop extends Piece{
 
-	public Bishop(PlayerType owner, Location currentPos){
+	public Bishop(String owner, Location currentPos){
 		
 		super(currentPos);
-		if(owner == PlayerType.Black){
+		if(owner.equals("Black")){
 			
 			this.asciiModel = "bB";
 		}else{

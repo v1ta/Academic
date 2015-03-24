@@ -1,14 +1,19 @@
 package model;
 
 import util.Location;
-import model.Player.PlayerType;
 
+
+/**
+ * Rook object
+ * @author Joseph
+ *
+ */
 public class Rook extends Piece{
 
-	public Rook(PlayerType owner, Location currentPos){
+	public Rook(String owner, Location currentPos){
 		
 		super(currentPos);
-		if(owner == PlayerType.Black){
+		if(owner.equals("Black")){
 			
 			this.asciiModel = "bR";
 		}else{

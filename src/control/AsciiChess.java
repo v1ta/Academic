@@ -7,6 +7,11 @@ import model.Board;
 import model.Piece;
 import model.Player;
 
+/**
+ * control for chess
+ * @author Joseph
+ *
+ */
 public interface AsciiChess {
 	
 	boolean play(Board baord);
@@ -16,8 +21,6 @@ public interface AsciiChess {
 	boolean movePiece(Piece piece, Board board, Location toMove, Player player);
 	
 	boolean checkMate(Board board, Player player);
-	
-	boolean staleMate(Board board);
 	
 	ArrayList<Location> parseInput(String input);
 
