@@ -1,7 +1,7 @@
 package util;
 
 /**
- * Location object
+ * Location object, stores x,y coordinate. 
  * @author Joseph
  *
  */
@@ -11,20 +11,28 @@ public class Location {
 	private int j;
 	
 	public Location(int i, int j){
+		
 		this.i = i;
 		this.j = j;
+		
 	}
 	
 	public int getI(){
+		
 		return this.i;
+		
 	}
 	
 	public int getJ(){
+		
 		return this.j;
+		
 	}
 	
 	public String toString(){
+		
 		return this.i + " " + this.j;
+		
 	}
 	
 	public boolean equals(Object o){
@@ -33,10 +41,13 @@ public class Location {
 			if(((Location) o).getI() == this.getI() && ((Location)o).getJ() == this.getJ()){
 				
 				return true;
+				
 			}else{
 				
 				return false;
+				
 			}
+			
 		}else{
 			
 			return false;

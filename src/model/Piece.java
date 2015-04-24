@@ -16,18 +16,22 @@ public abstract class Piece implements Cloneable{
 	protected String asciiModel;
 	protected String owner;
 	protected ArrayList<Location> validMoves;
-	protected int[][] moveset;
-	protected int[][] sMoveset;
+	protected int[][] moveset; //unit vectors for standard moves
+	protected int[][] sMoveset; //units vectors for special moves (castle, inital pawn moves, etc...)
 	protected int numMoves;
 	protected Location currentPos;
-	protected boolean atStart = true;
-	protected Location ghost;
+	protected boolean atStart = true; //flag that the piece hasn't moved
+	protected Location ghost; // field for enpassant/pawn functionality 
 	protected int turnsAlive;
 	protected int upgradeLoc;
 	protected static int pieceCount;
 	protected int pieceID;
-	protected boolean isCopy = false;
+	protected boolean isCopy = false; //flag if the piece is a copy
 	
+	/**
+	 * Default constructor 
+	 * @param currentPos
+	 */
 	public Piece(Location currentPos){
 		
 		this.alive = true;
@@ -37,6 +41,10 @@ public abstract class Piece implements Cloneable{
 		pieceCount++;
 	}
 	
+	/**
+	 * Deep copy constructor. Allows for +1 moves to be calculated without manipulating the actual board
+	 * @param piece
+	 */
 	public Piece(Piece piece){
 		
 		this.isCopy = true;
@@ -177,6 +185,10 @@ public abstract class Piece implements Cloneable{
 		return this.isCopy;
 	}
 	
+	/**
+	 * Deep copy via cloning interface, current build uses a copy constructor. 
+	 * @return
+	 */
 	public Piece getClone(){
 		try {
 			return (Piece) this.clone();
@@ -188,11 +200,14 @@ public abstract class Piece implements Cloneable{
 		return null;
 	}
 	
+	
+	
 	@Override
 	protected Object clone() throws CloneNotSupportedException {
 		Piece cloned = (Piece)super.clone();
 		return cloned;
 	}
+	
 	
 }
 

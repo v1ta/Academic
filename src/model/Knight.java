@@ -13,6 +13,7 @@ public class Knight extends Piece{
 	public Knight(String owner, Location currentPos){
 		
 		super(currentPos);
+		
 		if(owner.equals("Black")){
 			
 			this.asciiModel = "bN";
@@ -24,6 +25,7 @@ public class Knight extends Piece{
 		this.owner = owner;
 		this.moveset = new int[][]{{2,1}, {-2,1}, {-2,-1}, {2,-1}, {1,2}, {-1,2}, {-1,-2}, {1,-2}};
 		this.numMoves = 1;
+		
 	}
 	
 	public Knight(Piece piece){

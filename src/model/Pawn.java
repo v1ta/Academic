@@ -2,7 +2,6 @@ package model;
 
 import util.Location;
 
-
 /**
  * Pawn object
  * @author Joseph
@@ -19,12 +18,14 @@ public class Pawn extends Piece{
 			this.upgradeLoc = 7;
 			this.moveset = new int[][]{{1, 0}};
 			this.sMoveset = new int[][]{{1, -1} , {1 , 1}};
+			
 		}else{
 			
 			this.asciiModel = "wp";
 			this.upgradeLoc = 0;
 			this.moveset = new int[][]{{-1, 0}};
 			this.sMoveset = new int[][]{{-1, -1} , {-1 , 1}};
+			
 		}
 		
 		this.owner = owner;

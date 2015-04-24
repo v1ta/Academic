@@ -18,10 +18,13 @@ public class Enpassant extends Piece{
 		this.ghost = ghost;
 		this.turnsAlive = 0;
 		this.asciiModel = "";
+		
 	}
 	
 	public Enpassant(Piece piece){
+		
 		super(piece);
+		
 	}
 	
 }

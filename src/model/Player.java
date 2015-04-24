@@ -9,11 +9,9 @@ import java.util.ArrayList;
  */
 public class Player {
 	
-	
 	private static int playerCount;
 	private String player;
 	private ArrayList<Piece> captured;
-	
 	
 	public Player(){
 		
@@ -30,7 +28,9 @@ public class Player {
 	}
 	
 	public String toString(){
+		
 		return this.player;
+		
 	}
 	
 	public void capturePiece(Piece piece){
