@@ -1,11 +1,8 @@
 # Server-Client-Banking-System
 ---
-author:
-- Joseph DeVita
-title: 'Multi-Process, Multi-Threaded Server-Client Banking System README'
 ...
 
-Server, Session Acceptor {#server-session-acceptor .unnumbered}
+Server, Session Acceptor 
 ========================
 
 The server program holds the data structures and controls the logic for
@@ -41,7 +38,7 @@ terminates. Another for SIGINT is used to shut down the program. A call
 to SIGINT will clean up the shared memory before exiting the main
 processes.
 
-Server, Client Service Process {#server-client-service-process .unnumbered}
+Server, Client Service Process 
 ==============================
 
 When the session acceptor thread calls: pid<span>\_</span>t
@@ -55,7 +52,7 @@ client. Depending on the command, the server may also append special
 characters to put the client in session and/or let the client know the
 data structure it is trying to access is currently in use.
 
-Client {#client .unnumbered}
+Client 
 ======
 
 The client program requires a host name passed via command line to
@@ -66,7 +63,7 @@ I/O with the server. Within this thread, the client can be in a general
 session or a client session. The general state allows for the following
 functionality:
 
-General Session {#general-session .unnumbered}
+General Session 
 ===============
 
     int general_client_session()
@@ -96,7 +93,7 @@ submits an exit command or terminates.
 3\. Quit: Terminates the connection with the bank and the client process
 itself closes its socket descriptor and terminates.
 
-Client Session {#client-session .unnumbered}
+Client Session
 ==============
 
     int account_client_session( )
@@ -129,7 +126,7 @@ balance the user will be notified of their error.
 4\. End: Requests that the server put the account-in-session out of
 session.
 
-Testing: Summary {#testing-summary .unnumbered}
+Testing: Summary
 ================
 
 During development most of the potential pitfalls had to be thoroughly
@@ -143,7 +140,7 @@ threads.
 2\. Creating shared memory in a unix environment. Understand shared
 memory enough to anticipate synchronization problems.
 
-Testing: Synchronization Mechanism Selection {#testing-synchronization-mechanism-selection .unnumbered}
+Testing: Synchronization Mechanism Selection
 ============================================
 
 A lot of time went into choosing how to handle locking individual
@@ -167,7 +164,7 @@ handle mutual exclusion ownership of an account.
     sem_t * sem[20];
     sem_t * rep;
 
-Testing: Shared Memory Implementation {#testing-shared-memory-implementation .unnumbered}
+Testing: Shared Memory Implementation
 =====================================
 
 shmget() and mmap() were two choices that were applicable to the
@@ -181,7 +178,7 @@ creating a new pointer exclusive to each client-service process to
 access the memory, and it functions nearly the same as standard heap
 memory.
 
-Testing: Use-Case: General Commands/Communcation {#testing-use-case-general-commandscommuncation .unnumbered}
+Testing: Use-Case: General Commands/Communcation 
 ================================================
 
     TC 1: ./client <valid host name> 
@@ -201,7 +198,7 @@ Testing: Use-Case: General Commands/Communcation {#testing-use-case-general-comm
     TC 10: 1 <account name that isn't in use> 
     : <error mesage> [bank is full]
 
-Testing: Use-Case: General Commands/Communication {#testing-use-case-general-commandscommunication .unnumbered}
+Testing: Use-Case: General Commands/Communication
 =================================================
 
     TC 1: 1 <string with valid positive numbers> 
@@ -221,7 +218,7 @@ Testing: Use-Case: General Commands/Communication {#testing-use-case-general-com
     TC 8 : 4 <> 
     : <confirmation of termination of account session> 
 
-Testing: Use-Case: Synchronization {#testing-use-case-synchronization .unnumbered}
+Testing: Use-Case: Synchronization
 ==================================
 
     TC 0: <client-service can access shared memory>
