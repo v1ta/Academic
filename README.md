@@ -198,7 +198,7 @@ Testing: Use-Case: General Commands/Communcation
     TC 10: 1 <account name that isn't in use> 
     : <error mesage> [bank is full]
 
-Testing: Use-Case: General Commands/Communication
+Testing: Use-Case: Client-Session Commands/Communication
 =================================================
 
     TC 1: 1 <string with valid positive numbers> 
