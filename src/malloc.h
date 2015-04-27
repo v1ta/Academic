@@ -1,3 +1,10 @@
+#ifndef malloc_h
+#define malloc_h
+#include <stddef.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+
 /* 
 	The smallest bucket >= sizeof(memEntry). This will vary depending on
 	your system. For example a 32 bit system can have a minmum bucket size of
@@ -15,12 +22,14 @@
  */
 #define BUCKET_SIZE ( sizeof(int *) * 4) 
 
+
 extern unsigned int * storage;
 /*
 	mmap() can be used to store values that are > our max page file. 
- */
+
 #define MMAP(addr, size, prot, flags) \
  __mmap((addr), (size), (prot), (flags)|MAP_ANONYMOUS|MAP_PRIVATE, -1, 0);
+/*
 
 /*
 	DLL implementation:
@@ -32,7 +41,7 @@ extern unsigned int * storage;
 
 typedef struct block
 {
-	Block memEntry *prev, *next;
+	struct block *prev, *next;
 	int isfree; //boolean off / on?
 	size_t size;
 } Block;
@@ -40,14 +49,13 @@ typedef struct block
 /*
 	Allows a convient way of accessing newly allocated heaps. 
  */
-typedef struct heap
+typedef struct
 {
 	unsigned int in_use;  // allows a way to know if we should check a heap after its full, note: this doesn't gurantee it can be used. 
 	Block *root, *last;
 	Block *unfixed_tail, *fixed_tail;
 	
 } Heap;
-
 
 /*
 	Standard malloc, will allocated an amount of heap memory and return a void *
@@ -64,3 +72,4 @@ int fit_bucket( size_t );
 void decrement_heap( void * );
 
 void myfree( void * );
+#endif

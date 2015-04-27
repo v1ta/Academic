@@ -1,5 +1,6 @@
+#include <math.h>
 #include "malloc.h"
-#include <unistd.h>
+
 
 /* this version uses sbrk */
 
@@ -51,30 +52,42 @@ mymalloc( size_t size )
 				root + k |===========================|    |=============| last + k
 
 	 */
-	static ** Heap heap; // TODO: add dynamical scaling w/o using GNU malloc 
+	static Heap ** heap; // TODO: add dynamical scaling w/o using GNU malloc 
 	static int i = 0;
 	int bucket_flag;
 
 	// first time initialization, might need error checking
 	if ( !heap )
-	{
-		heap[i] = (Heap *) sbrk(8192);
+	{	
+		heap = (Heap **) sbrk(sizeof(Heap *));
+		heap[i] = (Heap *)sbrk(8192);
+		printf("HEAP ALLOCATED AT ADDESS: %p\n", heap[i]);
 		heap[i]->root = (Block *) ( (char *) heap + sizeof(Heap)); // 2^13
-		heap[i]->last = sbrk(0);
+		heap[i]->root->next = heap[i]->root->prev = NULL;
+		heap[i]->root->size = 0;
+		heap[i]->root->isfree = 1;
+        printf("HEAP UNFIXED HEAD ALLOCATED AT: %p\n", heap[i]->root);
+		heap[i]->last = (Block*) ((char *)sbrk(0) - (char* )sizeof(Block));
+        printf("HEAD FIXED HEAD ALLOCATED AT: %p\n", heap[i]->last);
+		heap[i]->last->next = heap[i]->last->prev = NULL;
+		heap[i]->last->size = 0;
+		heap[i]->last->isfree = 1;
+		heap[i]->in_use = 0;
 		heap[i]->unfixed_tail = NULL; // MIGHT NEED TO CHANGE THESE INITIALIZATIONS
 		heap[i]->fixed_tail = NULL;  // MIGHT NEED TO CHANGE THESE INITIALIZATIONS 
 		i++;
+		printf("HEAP INITIALIZED\n");
 	}
 
 	// Iterator variables 
-	Block memEntry *p, *next;
+	Block *p, *next;
 
 	int k;
 	int j = -1;
 
 	for(k = 0; k < i; k++)
 	{
-		if(heap[k].in_use < size){
+		if(heap[k]->in_use < size){
 			j = k;
 			break;
 		}
@@ -86,37 +99,45 @@ mymalloc( size_t size )
 		heap[i] = (Heap *) sbrk(8192);
 		heap[i]->root = (Block *) ( (char *) heap + sizeof(Heap)); // 2^13
 		heap[i]->last = sbrk(0);
+		heap[i]->in_use = 0;
 		heap[i]->unfixed_tail = NULL; // MIGHT NEED TO CHANGE THESE INITIALIZATIONS
 		heap[i]->fixed_tail = NULL;  // MIGHT NEED TO CHANGE THESE INITIALIZATIONS 
 		i++;
 
 	}
-
-	ALLOCATE:
+    
+    printf ("MAX BUCKET SIZE ON ILAB IS: %d\n", (BUCKET_SIZE * (int)pow(2,5)));
+	
 	// Check if it goes in a pre-defined bucket
-	if ( size <= BUCKET_SIZE * 6)
+	if ( size <= (BUCKET_SIZE * (int)pow(2,5) ))
 	{
-		p = heap[j]->last;
+		p = heap[j]->fixed_tail;
 		size = fit_bucket( size );
 		bucket_flag = 1;
 	}
 	else
 	{
-		p = heap[j]->root;
+		p = heap[j]->unfixed_tail;
 		bucket_flag = 0;
 	}
-	
+    
+    printf("SIZE TO ALLOCATE IS: %d\n", size);
+    
+	ALLOCATE:
 	// Traverse List, this tries to use free'd bucket 
-	for(; p != 0, p = p->next)
+	for(; p != NULL; p = p->next)
 	{
+		printf("TRAVERSING LIST\n");
+
 		if ( p->size < size || !p->isfree)
 			continue;
 
 		if ( p->size <= size && p->isfree ) 
 		{ 
+			printf("USING PREVIOUSLY OWNED BUCKET\n");
 			p->isfree = 0;
 
-			if(bucket)
+			if ( bucket_flag )
 				return (char *)p - p->size;	
 			else
 				return (char *)p + sizeof(Block);
@@ -124,16 +145,20 @@ mymalloc( size_t size )
 			continue;
 	}
 
-	// Bounds checking 
-	if ( (bucket_flag ? ((heap[j]->fixd_tail - size - sizeof(block)) >= heap[j]->unfixed_tail) : (heap[j]->unfixed_tail + size + sizeof(block)) <= head[j]->fixd_tail) )
-	{
-		if ( bucket_flag )
+        printf("BOUNDS CHECKING, FLAG: %d\n",bucket_flag);
+        // Bounds checking
+
+		if ( bucket_flag && ( ((heap[j]->fixed_tail - size - sizeof(Block)) >= heap[j]->unfixed_tail) || ((heap[j]->unfixed_tail == NULL) && (heap[j]->in_use + size) <= (8192 - sizeof(Heap) - sizeof(Block) * 2 - heap[j]->in_use)) )) 
 		{
+			printf("BOUNDS CHECKING COMPLETE FIXED\n");
+
 			// first element
 			if ( heap[j]->fixed_tail == NULL )
 			{
+				printf("ADDING FIRST ELEMENT FIXED TAIL\n");
 				p = heap[j]->last;
-				p -= (Block *) ( (char *) - sizeof(Block) - 1);
+				//p -= (Block *) ( (char *) - sizeof(Block) - 1);
+               // printf("POINTER ARITHMITIC SEG CHECK\n");
 				heap[j]->fixed_tail = p;
 				heap[j]->last = p;
 				p->next = NULL;
@@ -146,7 +171,8 @@ mymalloc( size_t size )
 			else
 			{
 				p = heap[j]->fixed_tail;
-				p -= (Block *) ( (char *) sizeof(Block) + heap[j]->fixed_tail->size - 1); //move it to the next avail location;
+            
+				p -= (Block *) ( (char *) sizeof(Block) + heap[j]->fixed_tail->size - 1); //move it to the next avail location, might not need this anymore.
 				p->prev = heap[j]->fixed_tail;
 				heap[j]->fixed_tail->next = p;
 				p->size = size;
@@ -165,12 +191,14 @@ mymalloc( size_t size )
 			}
 
 		}
-		else
+		else if (!bucket_flag && ( ((heap[j]->unfixed_tail + size + sizeof(Block)) <= heap[j]->fixed_tail) || ((heap[j]->fixed_tail == NULL) && (heap[j]->in_use + size) <= (8192 - sizeof(Heap) - sizeof(Block) * 2 - heap[j]->in_use)) ) )
 		{
+            printf("BOUNDS CHECKING COMPLETE UNFIXED\n");
 			// first element 
 			if ( heap[j]->unfixed_tail == NULL)
 			{	
-				p = heap->root;
+				printf("ADDING FIRST ELEMENT UNFXIED TAIL\n");
+				p = heap[j]->root;
 				heap[j]->unfixed_tail = p;
 				heap[j]->root = p;
 				p->next = NULL;
@@ -181,7 +209,7 @@ mymalloc( size_t size )
 			}
 			else
 			{
-				p = (Block *) ( (char *) sizeof(Block) + unfixed_tail->size + 1); //move it to the next avail location;
+				p = (Block *) ( (char *) sizeof(Block) + heap[j]->unfixed_tail->size + 1); //move it to the next avail location;
 				p->prev = heap[j]->unfixed_tail;
 				heap[j]->unfixed_tail->next = p;
 				p->size = size;
@@ -191,21 +219,22 @@ mymalloc( size_t size )
 				return (char *)p + sizeof(Block);
 			}
 		}
-	}
-	else
-	{
-		j = i;
-		heap[i] = (Heap *) sbrk(8192);
-		heap[i]->root = (Block *) ( (char *) heap + sizeof(Heap)); // 2^13
-		heap[i]->last = sbrk(0);
-		heap[i]->unfixed_tail = NULL; // MIGHT NEED TO CHANGE THESE INITIALIZATIONS
-		heap[i]->fixed_tail = NULL;  // MIGHT NEED TO CHANGE THESE INITIALIZATIONS 
-		i++;
-		goto ALLOCATE;
-	}
+		else
+		{
+			j = i;
+			heap[i] = (Heap *) sbrk(8192);
+			heap[i]->root = (Block *) ( (char *) heap + sizeof(Heap)); // 2^13
+			heap[i]->last = sbrk(0);
+			heap[i]->in_use = 0;
+			heap[i]->unfixed_tail = NULL; // MIGHT NEED TO CHANGE THESE INITIALIZATIONS
+			heap[i]->fixed_tail = NULL;  // MIGHT NEED TO CHANGE THESE INITIALIZATIONS 
+			i++;
+			goto ALLOCATE;
+		}
 
 }
 
+/*
 void
 myfree( void * p )
 {
@@ -231,16 +260,16 @@ myfree( void * p )
 		if ( next->next != 0 ) next->next->prev = pred;
 	}
 }
-
+*/
 int
-fit_bucket( unsigned int size )
+fit_bucket( size_t size )
 {
 	int i;
-	for(i = 1; i <= 6; i++)
+	for(i = 0; i < 6; i++)
 	{
-		if( size <= (BUCKET_SIZE * i) )
+		if( size <= (BUCKET_SIZE * (int) pow(2,i) ))
 		{
-			return BUCKET_SIZE * i;
+			return BUCKET_SIZE * (int) pow(2,i);
 		}
 	}
 
