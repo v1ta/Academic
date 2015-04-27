@@ -10,7 +10,7 @@ This application intends to re-implement the standard GNU functions:
 
     void free(void *);
 
-Malloc {#malloc .unnumbered}
+Malloc 
 ======
 
 The implementation of void \* malloc(size<span>\_</span>t) focuses on
@@ -62,7 +62,7 @@ allocation fitting a heap which may have previously been filled. Due
 note this doesn’t guarantee a given allocation n \<= (Heap -
 in<span>\_</span>use) will actually be allocatable into said heap.
 
-Test-Cases {#test-cases .unnumbered}
+Test-Cases
 ==========
 
     TC 1: (Basic un-fixed bucket add, char *)
