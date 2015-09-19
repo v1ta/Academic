@@ -26,7 +26,7 @@ public class EchoServer implements Runnable{
     public static void main(String[] args) throws Exception {
     	
     	/*
-    	 * In case the was dropped as a baby
+    	 * In case the user was dropped as a baby
     	 */
 		if (args.length != 1) {
 			System.out.println("SUPPLY A PORT NUMBER KTHX");
