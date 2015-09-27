@@ -77,7 +77,7 @@ public class EchoServer implements Runnable{
 	        System.exit(1); // TODO the blocking input stream call in a client thread is the only reason this is needed, should find a way around
 		}
     
-
+	
 	/**
 	 * launch a new Thread for each client session
 	 */
