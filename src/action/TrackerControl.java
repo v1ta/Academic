@@ -22,7 +22,7 @@ import model.Tracker;
  */
 public class TrackerControl {
 	
-	TorrentInfo torrentInfo = null;
+	public TorrentInfo torrentInfo = null;
 	
 	/**
 	 * Writes a torrent file to byte[] and initializes the Tracker URL
