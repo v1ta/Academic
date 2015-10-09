@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 import action.TrackerControl;
+import model.Peer;
 
 /**
  * Logic visible to the user
@@ -26,11 +27,15 @@ public class Term {
 	public static final ByteBuffer KEY_PEERID = ByteBuffer.wrap(new byte[] {'p', 'e', 'e', 'r', ' ', 'i', 'd' });
 	public static final ByteBuffer KEY_IP = ByteBuffer.wrap(new byte[] { 'i','p' });
 	public static final ByteBuffer KEY_PORT = ByteBuffer.wrap(new byte[] { 'p','o', 'r', 't' });
+	
 	public static void main(String args[]){
 		TrackerControl tracker = new TrackerControl();
 		Tracker.setTrackerData(tracker.trackerGET());
-		System.out.println(Tracker.getTrackerGETURL().toString());
-		System.out.println();
+		Peer.connectToPeers(Tracker.getTrackerData());
+		
+		
+		//System.out.println(Tracker.getTrackerGETURL().toString());
+		//System.out.println();
 		
 		/*
 		String[] readable = printString(Tracker.getTrackerData(), true, 0).split(":");
@@ -38,7 +43,7 @@ public class Term {
 		for(String str : readable){
 			System.out.println(str);
 		}
-		*/
+		
 		//hi
 		
 		HashMap<ByteBuffer, Object> ableToRead = null;
@@ -65,7 +70,7 @@ public class Term {
 
 			}
 
-		}
+		}*/
 
 	}
 	
