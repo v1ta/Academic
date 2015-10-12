@@ -27,9 +27,9 @@ public class TorrentManager extends Thread implements TorrentProtocol{
     boolean isRunning = false;
     public static boolean haveFullFile = false;
     boolean downloadingStatus = true;
-    long rateCalulatorTotalDownload =0L;
 
-    long rateCalculatorTotalUpload = 0L;
+
+    //long rateCalculatorTotalUpload = 0L;
     Timer rateCalculatorTimer;
     public int numHashFails = 0;
 
@@ -67,17 +67,16 @@ public class TorrentManager extends Thread implements TorrentProtocol{
             int i = 1;
             for (Peer p : peers) {
                 System.out.println(p.toString());
-                if (!p.connect()) {
-                    System.err.println("Wrong Peer IP or unable to contact peer" + p);
-                } else {
-                    this.peers.add(p);
-                    ++i;
-                }
+
+                    if (!p.connect()) {
+                        System.err.println("Wrong Peer IP or unable to contact peer" + p);
+                    } else {
+                        this.peers.add(p);
+                        ++i;
+                    }
             }
         }
         this.tracker.timer = new Timer();
-        //this.tracker.trackerUpdate = new TrackerUpdate(this.tracker, this);
-        //this.tracker.timer.schedule(this.tracker.trackerUpdate,  this.tracker.interval * 1000, this.tracker.interval * 1000);
 
         this.optUnchoke = new Timer();
         this.optUnchokingObj = new Choking(this);
@@ -89,13 +88,8 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         if(haveFullFile) {
             downloadingStatus = false;
             tracker.update("completed", this);
-            // RUBTClient.log("Finished downloading. Will now seed.");
             tracker.downloaded = tracker.torrentInfo.file_length;
-
             byte[] bitfield = HashSequenceHelper.boolToBitfieldArray(this.bits);
-            //Bitfield bitMsg = new Bitfield(bitfield, peer);
-
-            // Send the Peers our completed Bitfield!
             for (Peer peer : this.peers) {
                 try {
                     peer.send(new Bitfield(bitfield, peer));
@@ -120,44 +114,6 @@ public class TorrentManager extends Thread implements TorrentProtocol{
             peerId[i] = (byte) ('A' + rand.nextInt(26));
         }
         return peerId;
-    }
-
-    public ArrayList<Peer> listPeers(byte[] trackerData){
-
-        ArrayList<Peer> peers = new ArrayList<>();
-        HashMap<ByteBuffer, Object> ableToRead = null;
-        int peerPort;
-        byte[] peerId;
-        String peerIP;
-        Peer peer;
-
-        try {
-            ableToRead = (HashMap<ByteBuffer, Object>) Bencoder2.decode(trackerData);
-        } catch (BencodingException e) {
-            System.err.println("EXCEPTION: " + e.getMessage());
-        }
-
-        //ToolKit.printMap(ableToRead, 3);
-
-        List<Map<ByteBuffer, Object>> peersList = (List<Map<ByteBuffer, Object>>) ableToRead.get(HashConstants.KEY_PEERS);
-
-
-        for (Map<ByteBuffer, Object> rawPeer : peersList) {
-            peerPort = ((Integer) rawPeer.get(HashConstants.KEY_PORT)).intValue();
-            peerId = ((ByteBuffer) rawPeer.get(HashConstants.KEY_PEERID)).array();
-            peerIP = null;
-            try {
-                peerIP = new String(((ByteBuffer) rawPeer.get(HashConstants.KEY_IP)).array(),"ASCII");
-                peer = new Peer(peerId, peerPort, peerIP, tracker, this);
-                peers.add(peer);
-
-            } catch (UnsupportedEncodingException e) {
-                System.err.println("Failed to extract peers\nEXCEPTION: " + e.getMessage());
-            }
-
-        }
-
-        return peers;
     }
 
     public void addToQueue(Message message){
@@ -303,13 +259,13 @@ public class TorrentManager extends Thread implements TorrentProtocol{
 
             if (verifySHA1(piece, pieceHashes[i], i)) {
                 verifiedPieces[i] = true;
-                //RUBTClient.log("Verified piece " + i);
+
             }
         }
 
         for(int i = 0; i < verifiedPieces.length; i++){
             if(verifiedPieces[i] != false){
-                //RUBTClient.addProgress(torrentInfo.piece_length);
+
             }
 
             if(i == verifiedPieces.length - 1){
@@ -327,7 +283,6 @@ public class TorrentManager extends Thread implements TorrentProtocol{
             SHA1 = MessageDigest.getInstance("SHA-1");
         } catch (NoSuchAlgorithmException e) {
             System.err.println("Unable to find SHA1 Algorithm");
-            //RUBTClient.log("Unable to find SHA1 Algorithm");
             return false;
         }
 

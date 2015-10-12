@@ -17,11 +17,8 @@ import util.HashConstants;
  */
 public class RUBTClient extends Thread{
 
-
-
 	public static void main(String args[]){
 
-		/* Parse torrent metadata, setup comms w/tracker */
 		RUBTClient mainApp = new RUBTClient();
 		mainApp.start();
 		EventQueue.invokeLater(new Runnable() {
@@ -46,28 +43,11 @@ public class RUBTClient extends Thread{
 				client.bits = new boolean[client.tracker.torrentInfo.piece_hashes.length];
 				Arrays.fill(client.bits, false);
 
-		/*
-		Peer peerPhaseOne = null;
-
-		for(Peer peer : client.listPeers(client.tracker.getResponse())){
-			byte[] id = new byte[6];
-			System.arraycopy(peer.peerId, 0, id, 0, 6);
-			if (Arrays.equals(id, HashConstants.PEER_ID_PHASE_ONE))
-				peerPhaseOne = peer;
-		}
-
-
-		if (!peerPhaseOne.connect()){
-			System.err.println("failed to connet");
-			return;
-		}
-		*/
 				client.start();
 
-		/* Run client until file is complete*/
-				while(!client.isFileComplete()){}
 
-			}
+
+		}
 		});
 
 

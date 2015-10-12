@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import action.PeerConnection;
@@ -59,9 +58,10 @@ public class Peer extends Thread implements PeerConnection{
 		byte[] id = new byte[4];
 		System.arraycopy(this.peerId, 0, id, 0, 4);
 
-		if (!Arrays.equals(id, HashConstants.PEER_ID_PHASE_ONE) && !Arrays.equals(id, new byte[] { '-', 'G', 'P', '0', '3', '-'})){
+		if (!Arrays.equals(id, HashConstants.PEER_ID_PHASE_ONE)){
 			return false;
 		}
+
 		try {
 
 			createSocket();
@@ -164,7 +164,7 @@ public class Peer extends Thread implements PeerConnection{
 			this.socket = null;
 			this.in = null;
 			this.out = null;
-			//this.manager.peers.remove(this);
+			this.torrentManager.peers.remove(this);
 			isRunning = false;
 
 		}
@@ -205,7 +205,6 @@ public class Peer extends Thread implements PeerConnection{
 			System.err.println("Unable to send choke to peer");
 		}
 		choke[0] = true;
-		//RUBTClient.updatePeerChokeStatus(this, true);
 	}
 
 	public void unchoke(){
@@ -215,7 +214,6 @@ public class Peer extends Thread implements PeerConnection{
 			System.err.println("Unable to send unchoke to peer");
 		}
 		choke[0] = false;
-		//RUBTClient.updatePeerChokeStatus(this, false);
 	}
 
 	public Request getNextRequest() {
@@ -255,7 +253,6 @@ public class Peer extends Thread implements PeerConnection{
 
 		try {
 			piece.write(pieceMsg.block, 0, pieceMsg.block.length);
-			//RUBTClient.log(Integer.toString(this.piece.toByteArray().length));
 		} catch (Exception e) {
 			System.err.println("Unable to write to file at " + pieceMsg.index + " with offset " + pieceMsg.start);
 		}
