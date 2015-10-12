@@ -39,7 +39,7 @@ public class Peer extends Thread implements PeerConnection{
 	LinkedBlockingQueue<Request> requestQueue = new LinkedBlockingQueue<>();
 
 	public Peer(byte[] peerId, int port, String host, Tracker tracker, TorrentManager torrentManager) {
-		//super("Peer@" + ip + ":" + port);
+		super("Peer@" + host + ":" + port);
 		this.peerId = peerId;
 		this.port = port;
 		this.host = host;
@@ -55,10 +55,13 @@ public class Peer extends Thread implements PeerConnection{
 
 	public boolean connect() {
 
-		//check to see if peer id doesn't start with RU11
+
 		byte[] id = new byte[4];
 		System.arraycopy(this.peerId, 0, id, 0, 4);
 
+		if (!Arrays.equals(id, HashConstants.PEER_ID_PHASE_ONE) && !Arrays.equals(id, new byte[] { '-', 'G', 'P', '0', '3', '-'})){
+			return false;
+		}
 		try {
 
 			createSocket();
@@ -305,16 +308,9 @@ public class Peer extends Thread implements PeerConnection{
 		}
 	}
 
-	@Override
+
 	public String toString() {
-		try {
-			return "Peer{" +
-                    "peerId=" + new String(peerId, "UTF-8") +
-                    '}';
-		} catch (UnsupportedEncodingException e) {
-			System.err.println("Failed to print peerId\nEXCEPTION: " + e.getMessage());
-			return e.getMessage();
-		}
+		return new String(peerId) + " " + port + " " + host;
 	}
 
 	public class Uploader extends Thread{

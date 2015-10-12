@@ -38,7 +38,7 @@ public class Tracker implements TrackerConnection{
 		this.torrentInfo = torrentInfo;
 		this.torrentManager = torrentManager;
 		this.peerId = peerId;
-		this.port = setListeningPort(6881, 6889);
+		this.port = setListeningPort(6887, 6889);
 		//trackerGETURL = constructURL(this.torrentInfo,  peerId , this.port );
 	}
 

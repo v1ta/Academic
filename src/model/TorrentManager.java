@@ -39,6 +39,7 @@ public class TorrentManager extends Thread implements TorrentProtocol{
      * @param torrentFile
      */
     public TorrentManager(File torrentFile) throws IOException {
+        super();
         this.torrentFile = torrentFile;
         outputFile = new File("video.mov");
         try {
@@ -113,7 +114,7 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         peerId[0] = 'K';
         peerId[1] = 'K';
         peerId[2] = '0';
-        peerId[3] = '1';
+        peerId[3] = '8';
 
         for (int i = 4; i < 20; i++) {
             peerId[i] = (byte) ('A' + rand.nextInt(26));
