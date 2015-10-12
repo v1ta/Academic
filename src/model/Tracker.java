@@ -8,10 +8,7 @@ import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.URL;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import action.TrackerConnection;
 import util.*;
@@ -28,6 +25,7 @@ public class Tracker implements TrackerConnection{
 	int interval;
 	String event;
 	int port;
+	public Timer timer;
 	byte[] response;
 	byte[] peerId;
 	public final int requestSize = 16000;
@@ -41,7 +39,7 @@ public class Tracker implements TrackerConnection{
 		this.torrentInfo = torrentInfo;
 		this.torrentManager = torrentManager;
 		this.peerId = peerId;
-		this.port = setListeningPort(6881, 6889);
+		this.port = setListeningPort(6883, 6889);
 		trackerGETURL = constructURL(this.torrentInfo,  peerId , this.port );
 	}
 

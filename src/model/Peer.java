@@ -5,12 +5,10 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import action.PeerConnection;
-import model.message.Choke;
-import model.message.Piece;
-import model.message.Request;
-import model.message.Unchoke;
+import model.message.*;
 import util.HashConstants;
 
 public class Peer extends Thread implements PeerConnection{
@@ -26,14 +24,16 @@ public class Peer extends Thread implements PeerConnection{
 	boolean[] interest = {false, false}; //{we are interested, they are interested}
 	InputStream in;
 	OutputStream out;
+	Connection connection;
 	public int previousIndex = -1;
 	private int currentByteOffset = 0;
-	long totalDownload =0L;
+	public long totalDownload =0L;
+	public long totalUpload = 0L;
 
 	ByteArrayOutputStream piece = null;
 	int currentPieceIndex = -1;
 	int totalBytesWritten = 0;
-	LinkedList<Request> requestQueue = new LinkedList<>();
+	LinkedBlockingQueue<Request> requestQueue = new LinkedBlockingQueue<>();
 
 	public Peer(byte[] peerId, int port, String host, Tracker tracker, TorrentManager torrentManager) {
 		//super("Peer@" + ip + ":" + port);
@@ -42,6 +42,7 @@ public class Peer extends Thread implements PeerConnection{
 		this.host = host;
 		this.tracker = tracker;
 		this.torrentManager = torrentManager;
+		this.connection = new Connection(this);
 	}
 
 	public boolean connect() {
@@ -65,24 +66,10 @@ public class Peer extends Thread implements PeerConnection{
 			this.socket.setSoTimeout(10000);
 			is.readFully(response);
 			this.socket.setSoTimeout(130000);
-
 			if (!confirmHandshake(tracker.torrentInfo.info_hash.array(), response)) {
 				return false;
 			} else {
-				while(this.socket != null){
-					Message msg;
-					try {
-						msg = Message.MessageFactory(this.in, this);
-					} catch (IOException e) {
-						System.err.println("Invalid stream for peer " + this.toString()+ "\nEXCEPTION: "+ e.getMessage());
-						e.printStackTrace();
-						break;
-					}
-
-					if (msg != null)
-						if (msg.id == Message.request) requestQueue.add((Request) msg);
-						else torrentManager.addToQueue(msg);
-				}
+				this.start();
 				return true;
 			}
 
@@ -250,7 +237,30 @@ public class Peer extends Thread implements PeerConnection{
 		return false;
 	}
 
+	class Connection extends Thread {
+		public Peer peer;
+		public int interval = 120000;
+		public boolean isRunning = false;
 
+		Connection(Peer peer){
+			this.peer = peer;
+		}
+
+		public void run(){
+			while(this.isRunning){
+				try {
+					Thread.sleep(interval);
+				} catch (InterruptedException e) {
+					continue;
+				}
+				try {
+					peer.send(new KeepAlive(0,(byte)255,peer));
+				} catch (IOException e) {
+					System.err.println("Error sending keepalive to peer: " + this.peer);
+				}
+			}
+		}
+	}
 
 	@Override
 	public String toString() {

@@ -22,18 +22,18 @@ public class RUBTClient implements Runnable{
 	public static void main(String args[]){
 
 		/* Parse torrent metadata, setup comms w/tracker */
-		TorrentManager client = new TorrentManager(new File(System.getProperty("user.dir")
-				+ File.separator
-				+ "data"
-				+ File.separator
-				+ "Phase1.torrent"));
-
-
-
-		File outputFile = new File("352FA2015FinalAnswers.mov");
-
+		TorrentManager client = null;
 		try {
-			outputFile.createNewFile();
+			client = new TorrentManager(new File(System.getProperty("user.dir")
+                    + File.separator
+                    + "data"
+                    + File.separator
+                    + "Phase1.torrent"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		try {
+			client.configure();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -56,7 +56,7 @@ public class RUBTClient implements Runnable{
 			System.err.println("failed to connet");
 			return;
 		}
-
+		client.start();
 
 		/* Run client until file is complete*/
 		while(!client.isFileComplete()){}
