@@ -1,8 +1,24 @@
 package action;
 
+import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ServerSocket;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+import model.Peer;
+import model.TorrentManager;
+import util.Bencoder2;
+import util.BencodingException;
+import util.HashConstants;
+import util.HashSequenceHelper;
 import util.TorrentInfo;
 
 /**
@@ -33,4 +49,21 @@ public interface TrackerConnection {
 	 * @return
 	 */
 	URL constructURL(TorrentInfo torrentInfo, byte[] peerId, int port);
+	
+	/**
+	 * updates new events
+	 * @param event
+	 * @param torrentManager
+	 * @return
+	 * @throws IOException
+	 */
+	ArrayList<Peer> update(String event, TorrentManager torrentManager) throws IOException;
+	
+	/**
+	 * Gets the response
+	 * @return response
+	 */
+	byte[] getResponse();
+}
+
 }
