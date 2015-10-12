@@ -1,141 +1,268 @@
 package model;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.ServerSocket;
-import java.net.URL;
+import java.io.*;
+import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.LinkedList;
 
-import action.PeerManager;
-import action.TrackerControl;
-import util.Bencoder2;
-import util.BencodingException;
+import action.PeerConnection;
+import model.message.Choke;
+import model.message.Piece;
+import model.message.Request;
+import model.message.Unchoke;
+import util.HashConstants;
 
-import model.Tracker;
+public class Peer extends Thread implements PeerConnection{
 
+	Tracker tracker;
+	TorrentManager torrentManager;
+	Socket socket;
+	int port;
+	public byte[] peerId;
+	public boolean[] bitfield = null;
+	String host;
+	boolean[] choke =  {true, true}; // {we are choking, peer are choking}
+	boolean[] interest = {false, false}; //{we are interested, they are interested}
+	InputStream in;
+	OutputStream out;
+	public int previousIndex = -1;
+	private int currentByteOffset = 0;
+	long totalDownload =0L;
 
+	ByteArrayOutputStream piece = null;
+	int currentPieceIndex = -1;
+	int totalBytesWritten = 0;
+	LinkedList<Request> requestQueue = new LinkedList<>();
 
-public class Peer {
-	
-	public static final ByteBuffer KEY_PEERS = ByteBuffer.wrap(new byte[] {'p', 'e', 'e', 'r', 's' });
-	public static final ByteBuffer KEY_PEERID = ByteBuffer.wrap(new byte[] {'p', 'e', 'e', 'r', ' ', 'i', 'd' });
-	public static final ByteBuffer KEY_IP = ByteBuffer.wrap(new byte[] { 'i','p' });
-	public static final ByteBuffer KEY_PORT = ByteBuffer.wrap(new byte[] { 'p','o', 'r', 't' });
-	public static final byte[] MUST_NOT_PEER_ID = new byte[] { 'R', 'U', 'B', 'T' };
-	
-	
-	
-	protected URL trackerGETURL;
-	protected ServerSocket listenSocket;
-	protected byte[] trackerData;
-	protected int peerPort;
-	protected byte[] peerId;
-	protected String peerIP;
-	protected static ArrayList<Peer> peers;
-	/** The in. */
-	protected InputStream in;
-	
-	/** The out. */
-	protected OutputStream out;
-	
-	protected static HashMap<ByteBuffer, Object> dataFromTracker = null;
-
-	public Peer(byte[] peerId, int port, String ip) {
+	public Peer(byte[] peerId, int port, String host, Tracker tracker, TorrentManager torrentManager) {
 		//super("Peer@" + ip + ":" + port);
 		this.peerId = peerId;
-		this.peerPort = port;
-		this.peerIP = ip;
+		this.port = port;
+		this.host = host;
+		this.tracker = tracker;
+		this.torrentManager = torrentManager;
 	}
-	
-	/**
-	 * Inits the peer
-	 *
-	 * @return true, if successful
-	 */
-	public boolean init() {
-		
-		//check to see if peer id doesn't start with RUBT
+
+	public boolean connect() {
+
+		//check to see if peer id doesn't start with RU11
 		byte[] id = new byte[4];
 		System.arraycopy(this.peerId, 0, id, 0, 4);
-		
-		if ( !Arrays.equals(id, MUST_NOT_PEER_ID) ){ 
-			return false;
-		}
-		
-		
+
 		try {
-			//isRunning = true;
-			//currentTime= System.currentTimeMillis();
-			//this.connect();
+
+			createSocket();
 
 			DataOutputStream os = new DataOutputStream(this.out);
 			DataInputStream is = new DataInputStream(this.in);
 
-			if (is == null || os == null) {
-				//log.severe("Unable to create stream to peer");
-				//this.disconnect();
-				return false;
-			}
-			
-			System.out.println("In try of init");
-			os.write(PeerManager.generateHandshake(PeerManager.peerId, TrackerControl.torrentInfo.info_hash.array()));
+			os.write(handshake(peerId, tracker.torrentInfo.info_hash.array()));
 			os.flush();
 
 			byte[] response = new byte[68];
-			
-			
-			//this.socket.setSoTimeout(10000);
-			is.readFully(response);		
-			//this.socket.setSoTimeout(130000);
-			
-			if(!PeerManager.checkHandshake(TrackerControl.torrentInfo.info_hash.array(), response)){
-				return false;
-			}
-			System.out.println("ended init");
-		/*	log.info("Handshake Response: " + Arrays.toString(response));
 
-			if(this.manager.curUnchoked < this.manager.maxUnchoked){
-				this.weAreChokingPeer = false;
-				this.manager.curUnchoked++;
+			this.socket.setSoTimeout(10000);
+			is.readFully(response);
+			this.socket.setSoTimeout(130000);
+
+			if (!confirmHandshake(tracker.torrentInfo.info_hash.array(), response)) {
+				return false;
 			} else {
-				this.weAreChokingPeer = true;
+				while(this.socket != null){
+					Message msg;
+					try {
+						msg = Message.MessageFactory(this.in, this);
+					} catch (IOException e) {
+						System.err.println("Invalid stream for peer " + this.toString()+ "\nEXCEPTION: "+ e.getMessage());
+						e.printStackTrace();
+						break;
+					}
+
+					if (msg != null)
+						if (msg.id == Message.request) requestQueue.add((Request) msg);
+						else torrentManager.addToQueue(msg);
+				}
+				return true;
 			}
-			
-			this.start();
-			*/
-			//RUBTClient.log("Connected to " + this);
-			
-			return true;
+
 		} catch (Exception e) {
-			//log.severe("Error connecting with peer");
+			System.err.println("Failed to connect to peer @ " + this.host +"\nEXCEPTION: " + e.getMessage());
 			return false;
 		}
 	}
 
-	/**
-	 * connect to each peer on the list (DIDNT GET TO THE ACTUAL CONNECTING PART...)
-	 * 
-	 * @param trackerData
-	 */
-	public static void connectToPeers(byte[] trackerData) {
-		peers = new ArrayList<Peer>();
-		peers = PeerManager.peelPeer(trackerData);
-		
-		for (Peer peer : peers){
-			peer.init();
-			
-			
-		}
-	
+	public synchronized void createSocket() throws IOException {
+		this.socket = new Socket(this.host, this.port);
+		this.in = this.socket.getInputStream();
+		this.out = this.socket.getOutputStream();
 	}
-	
+
+	public byte[] handshake(byte[] peer, byte[] infohash) {
+		int index = 0;
+		byte[] handshake = new byte[68];
+
+		handshake[index] = 0x13;
+		index++;
+
+		System.arraycopy(HashConstants.KEY_BT, 0, handshake, index, HashConstants.KEY_BT.length);
+		index += HashConstants.KEY_BT.length;
+
+		/* message id */
+		byte[] zero = new byte[8];
+		for(int i = 0; i < zero.length; i++){
+			zero[i] = 0;
+		}
+		System.arraycopy(zero, 0, handshake, index, zero.length);
+		index += zero.length;
+
+
+		System.arraycopy(infohash, 0, handshake, index, infohash.length);
+		index += infohash.length;
+
+		System.arraycopy(peer, 0, handshake, index, peer.length);
+
+
+		System.out.println("handshake : " + handshake);
+		return handshake;
+	}
+
+	public boolean confirmHandshake(byte[] infoHash, byte[] response) {
+		byte[] peerHash = new byte[20];
+		System.arraycopy(response, 28, peerHash, 0, 20);
+
+		if(!Arrays.equals(peerHash, infoHash))
+		{
+			System.err.println("handshake failed");
+			return false;
+		}
+		return true;
+	}
+
+	public void run() {
+		while(this.socket != null){
+			Message msg;
+			try {
+				msg = Message.MessageFactory(this.in, this);
+			} catch (IOException e) {
+				System.err.println("Invalid stream for peer " + this.toString()+ "\nEXCEPTION: "+ e.getMessage());
+				e.printStackTrace();
+				break;
+			}
+
+			if (msg != null)
+				if (msg.id == Message.request) requestQueue.add((Request) msg);
+				else torrentManager.addToQueue(msg);
+		}
+	}
+
+	public void send(Message msg) throws IOException {
+		if (this.out == null) {
+			throw new IOException(this
+					+ " cannot send a message on an empty socket.");
+		}
+		System.err.println("Sending " + msg + " to " + this);
+		Message.encode(msg, out);
+	}
+
+	public void choke(){
+		try {
+			send(new Choke(1, Message.choke, this));
+		} catch (IOException e) {
+			System.err.println("Unable to send choke to peer");
+		}
+		choke[0] = true;
+		//RUBTClient.updatePeerChokeStatus(this, true);
+	}
+
+	public void unchoke(){
+		try {
+			send(new Unchoke(1, Message.unchoke, this));
+		} catch (IOException e) {
+			System.err.println("Unable to send unchoke to peer");
+		}
+		choke[0] = false;
+		//RUBTClient.updatePeerChokeStatus(this, false);
+	}
+
+	public Request getNextRequest() {
+		int piece_length = this.tracker.torrentInfo.piece_length;
+		int file_length = this.tracker.torrentInfo.file_length;
+		int requestSize = tracker.requestSize;
+		int numPieces = this.tracker.torrentInfo.piece_hashes.length;
+
+		if(this.currentPieceIndex == (numPieces - 1)){
+			piece_length = file_length % this.tracker.torrentInfo.piece_length;
+		}
+
+		if((this.currentByteOffset + requestSize) > piece_length){
+			requestSize = piece_length % requestSize;
+		}
+
+		Request request = new Request(this.currentPieceIndex, this.currentByteOffset, requestSize, this);
+
+		if((this.currentByteOffset + requestSize) >= piece_length){
+			this.currentPieceIndex = -1;
+			this.currentByteOffset = 0;
+		} else {
+			this.currentByteOffset += requestSize;
+		}
+
+		return request;
+	}
+
+	public boolean appendToPieceAndVerifyIfComplete(Piece pieceMsg, ByteBuffer[] hashes, TorrentManager manager) {
+
+		int currentPieceLength = (pieceMsg.index == (this.tracker.torrentInfo.piece_hashes.length - 1)) ?
+				this.tracker.torrentInfo.file_length % this.tracker.torrentInfo.piece_length : this.tracker.torrentInfo.piece_length;
+
+		if (this.piece == null) {
+			this.piece = new ByteArrayOutputStream();
+		}
+
+		try {
+			piece.write(pieceMsg.block, 0, pieceMsg.block.length);
+			//RUBTClient.log(Integer.toString(this.piece.toByteArray().length));
+		} catch (Exception e) {
+			System.err.println("Unable to write to file at " + pieceMsg.index + " with offset " + pieceMsg.start);
+		}
+
+		if(this.currentPieceIndex == -1){
+			this.totalBytesWritten = 0;
+			this.previousIndex = pieceMsg.index;
+			this.torrentManager.currReqBits[this.previousIndex] = false;
+
+			try {
+				if (manager.UpdateFile(pieceMsg, hashes[pieceMsg.index], piece.toByteArray())) {
+					totalDownload+= currentPieceLength;
+					this.torrentManager.bits[pieceMsg.index] = true;
+					piece = null;
+					return true;
+				} else {
+					piece = null;
+				}
+			} catch (Exception e) {
+				System.err.println("Error writing to file");
+				piece = null;
+			}
+		}
+
+		return false;
+	}
+
+
+
+	@Override
+	public String toString() {
+		try {
+			return "Peer{" +
+                    "peerId=" + new String(peerId, "UTF-8") +
+                    '}';
+		} catch (UnsupportedEncodingException e) {
+			System.err.println("Failed to print peerId\nEXCEPTION: " + e.getMessage());
+			return e.getMessage();
+		}
+	}
+
+
 }
