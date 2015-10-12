@@ -1,10 +1,7 @@
 package model;
 
 import action.TorrentProtocol;
-import model.message.Bitfield;
-import model.message.Have;
-import model.message.Interested;
-import model.message.Piece;
+import model.message.*;
 import util.*;
 
 import java.io.*;
@@ -13,24 +10,46 @@ import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class TorrentManager extends Thread implements TorrentProtocol{
 
     ArrayList<Peer> peers;
     public Tracker tracker;
-    LinkedList<Message> queue = new LinkedList<>();
+    LinkedBlockingQueue<Message> queue = new LinkedBlockingQueue<>();
     boolean[] currReqBits;
     File outputFile;
+    File torrentFile;
     public boolean[] bits;
+    public int curUnchoked = 0;
+    Choking optUnchokingObj;
+    public Timer optUnchoke;
     boolean isRunning = false;
     public static boolean haveFullFile = false;
     boolean downloadingStatus = true;
+    long rateCalulatorTotalDownload =0L;
+
+    long rateCalculatorTotalUpload = 0L;
+    Timer rateCalculatorTimer;
+    public int numHashFails = 0;
+
 
     /**
      * TorrentManager handles protocol logic and relevant object creation tasks
      * @param torrentFile
      */
-    public TorrentManager(File torrentFile){
+    public TorrentManager(File torrentFile) throws IOException {
+        this.torrentFile = torrentFile;
+        outputFile = new File("video.mov");
+        try {
+            outputFile.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void configure() throws IOException {
         try {
             tracker = new Tracker(new TorrentInfo(Files.readAllBytes(torrentFile.toPath())), genPeerId(), this);
         } catch (BencodingException | IOException e){
@@ -38,15 +57,31 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                     + e.getMessage());
         }
 
-        try {
-            tracker.sendHTTPGET(tracker.trackerGETURL);
-        } catch (IOException e) {
-           System.err.println("No response from tracker\n"+ e.getMessage());
-        }
-
         currReqBits = new boolean[tracker.torrentInfo.piece_length];
         Arrays.fill(currReqBits, false);
         isRunning = true;
+        peers = tracker.update("started", this);
+
+        if (peers != null) {
+            int i = 1;
+            for (Peer p : peers) {
+                System.out.println(p.toString());
+                if (!p.connect()) {
+                    System.err.println("Wrong Peer IP or unable to contact peer" + p);
+                } else {
+                    this.peers.add(p);
+                    ++i;
+                }
+            }
+        }
+        this.tracker.timer = new Timer();
+        //this.tracker.trackerUpdate = new TrackerUpdate(this.tracker, this);
+        //this.tracker.timer.schedule(this.tracker.trackerUpdate,  this.tracker.interval * 1000, this.tracker.interval * 1000);
+
+        this.optUnchoke = new Timer();
+        this.optUnchokingObj = new Choking(this);
+        this.optUnchoke.schedule(this.optUnchokingObj, 30000, 30000);
+
     }
 
     public void haveFile() throws IOException {
@@ -128,9 +163,9 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         queue.add(message);
     }
 
-    public void leech() throws IOException {
+    public void leech() throws IOException, InterruptedException {
         Message msg;
-        if ((msg = queue.poll()) == null) return;
+        if ((msg = queue.take()) == null) return;
 
         switch (msg.id) {
             case Message.choke:
@@ -167,11 +202,8 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                 break;
             case Message.bitfield:
                 boolean[] bitfield = HashSequenceHelper.bitfieldToBoolArray(((Bitfield)msg).bitfield, tracker.torrentInfo.piece_hashes.length);
-                boolean isSeed = true;
                 for (int i = 0; i < bitfield.length; ++i) {
                     msg.peer.bitfield[i] = bitfield[i];
-                    if(!bitfield[i])
-                        isSeed = false;
                 }
 
                 for(int j = 0; j < msg.peer.bitfield.length; j++){
@@ -181,21 +213,13 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                         break;
                     }
                 }
-                /*
-                if(isSeed)
-                {
-                    RUBTClient.addSeed();
-                }
-                */
                 break;
             case Message.piece:
                 Have haveMsg = new Have(((Piece)msg).index, msg.peer);
-                //peerMsg.peer.downloadRate += ((Message.Piece)peerMsg.message).block.length;
 
                 if (!this.bits[((Piece)msg).index]) {
                     if (msg.peer.appendToPieceAndVerifyIfComplete((Piece)msg, tracker.torrentInfo.piece_hashes, this) == true) {
                         this.bits[(msg).index] = true;
-                        //RUBTClient.addProgressBar(1);
 
                         for (Peer p : this.peers) {
                             try {
@@ -208,20 +232,11 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                     }
                 }
                 if (this.isFileComplete()) {
-                    //log.fine("Completed download: shutting down manager");
                     this.downloadingStatus = false;
                     this.tracker.update("completed", this);
-                    //RUBTClient.log("Finished downloading. Will now seed.");
-                    //RUBTClient.toggleProgressBarLoading();
                     return;
                 }
-                //	totalDownload += (((Message.Piece)peerMsg.message).block.length / (System.currentTimeMillis() - currentDownloadTime)/10.0);
-                //	downloadCount++;
-                //RUBTClient.setDownloadRate((totalDownload/downloadCount));
-                //currentDownloadTime = System.currentTimeMillis();
-                //RUBTClient.updatePeerDownRate(peerMsg.peer, peerMsg.peer.downloadRate/10.0);
 
-                //Tracker.downloaded+=((Message.Piece)peerMsg.message).length;
                 if(!msg.peer.choke[1])
                     msg.peer.send(msg.peer.getNextRequest());
                 break;
@@ -344,8 +359,6 @@ public class TorrentManager extends Thread implements TorrentProtocol{
             in = new BufferedReader(new FileReader(tFile));
             input = in.readLine();
             tracker.uploaded = Integer.parseInt(input);
-            //log.info("Increased upload amount");
-            //RUBTClient.addAmountUploaded(Tracker.uploaded);
         } else {
             tracker.downloaded = 0;
             tracker.uploaded = 0;
@@ -378,4 +391,62 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         System.out.print("File Finished");
     }
 
+   class Choking extends TimerTask{
+
+        /** The manager. */
+        TorrentManager torrentManager;
+
+
+        Choking(TorrentManager torrentManager){
+            this.torrentManager = torrentManager;
+        }
+
+	/* (non-Javadoc)
+	 * @see java.util.TimerTask#run()
+	 */
+    public void run(){
+
+        Peer worst = null;
+        long worstRate = Long.MAX_VALUE;
+        for(Peer p : torrentManager.peers){
+            if(p.choke[0] == false){
+                if(torrentManager.downloadingStatus == true){
+                    if(worstRate > p.totalDownload){
+                        worst = p;
+                        worstRate = p.totalDownload;
+                    }
+                } else {
+                    if(worstRate > p.totalUpload){
+                        worst = p;
+                        worstRate = p.totalUpload;
+                    }
+                }
+            }
+        }
+
+        ArrayList<Integer> indices = new ArrayList<Integer>();
+        for(Peer p : torrentManager.peers){
+            if(p.choke[0] == true){
+                indices.add(torrentManager.peers.indexOf(p));
+            }
+        }
+
+        System.out.println(indices);
+
+        Random random = new Random();
+        int n = random.nextInt(indices.size());
+
+        worst.choke[0] = true;
+        torrentManager.peers.get(indices.get(n)).choke[0] = false;
+
+        worst.choke();
+        torrentManager.peers.get(indices.get(n)).unchoke();
+
+        for(Peer p : torrentManager.peers){
+            p.totalDownload = 0;
+            p.totalDownload = 0;
+        }
+
+    }
+}
 }
