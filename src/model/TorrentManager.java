@@ -21,6 +21,7 @@ public class TorrentManager extends Thread implements TorrentProtocol{
     File outputFile;
     File torrentFile;
     public boolean[] bits;
+    public int curUnchoked = 0;
     Choking optUnchokingObj;
     public Timer optUnchoke;
     boolean isRunning = false;
@@ -56,16 +57,23 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                     + e.getMessage());
         }
 
-        try {
-            tracker.sendHTTPGET(tracker.trackerGETURL);
-        } catch (IOException e) {
-            System.err.println("No response from tracker\n"+ e.getMessage());
-        }
         currReqBits = new boolean[tracker.torrentInfo.piece_length];
         Arrays.fill(currReqBits, false);
         isRunning = true;
         peers = tracker.update("started", this);
 
+        if (peers != null) {
+            int i = 1;
+            for (Peer p : peers) {
+                System.out.println(p.toString());
+                if (!p.connect()) {
+                    System.err.println("Wrong Peer IP or unable to contact peer" + p);
+                } else {
+                    this.peers.add(p);
+                    ++i;
+                }
+            }
+        }
         this.tracker.timer = new Timer();
         //this.tracker.trackerUpdate = new TrackerUpdate(this.tracker, this);
         //this.tracker.timer.schedule(this.tracker.trackerUpdate,  this.tracker.interval * 1000, this.tracker.interval * 1000);

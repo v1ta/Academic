@@ -23,7 +23,7 @@ public interface TrackerConnection {
 	 * @param trackerGETURL
 	 * @return a port number corresponding to a listening port or this peer
 	 */
-	 void sendHTTPGET(URL trackerGETURL) throws IOException;
+	 byte[] sendHTTPGET(URL trackerGETURL) throws IOException;
 
 	/**
 	 * Construct a Tracker URL via decoded bencoded fields

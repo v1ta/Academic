@@ -7,7 +7,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 public class Request extends Message {
-    int mlength;
+    public int mlength;
 
     public Request(int index,  int start,  int length, Peer peer) {
         super(13, Message.request, peer);

@@ -26,7 +26,6 @@ public class Tracker implements TrackerConnection{
 	String event;
 	int port;
 	public Timer timer;
-	byte[] response;
 	byte[] peerId;
 	public final int requestSize = 16000;
 
@@ -39,8 +38,8 @@ public class Tracker implements TrackerConnection{
 		this.torrentInfo = torrentInfo;
 		this.torrentManager = torrentManager;
 		this.peerId = peerId;
-		this.port = setListeningPort(6883, 6889);
-		trackerGETURL = constructURL(this.torrentInfo,  peerId , this.port );
+		this.port = setListeningPort(6881, 6889);
+		//trackerGETURL = constructURL(this.torrentInfo,  peerId , this.port );
 	}
 
 	/**
@@ -71,14 +70,15 @@ public class Tracker implements TrackerConnection{
 		return -1;
 	}
 
-	public void sendHTTPGET(URL trackerGETURL) throws IOException {
+	public byte[] sendHTTPGET(URL trackerGETURL) throws IOException {
 		HttpURLConnection httpConnection = (HttpURLConnection)trackerGETURL.openConnection();
 		DataInputStream dataInputStream = new DataInputStream(httpConnection.getInputStream());
+		byte[]  trackerResponse = new byte[httpConnection.getContentLength()];
 
-		this.response = new byte[httpConnection.getContentLength()];
-
-		dataInputStream.readFully(response);
+		dataInputStream.readFully(trackerResponse);
 		dataInputStream.close();
+
+		return trackerResponse;
 	}
 
 	 public URL constructURL(TorrentInfo torrentInfo, byte[] peerId, int port){
@@ -122,18 +122,18 @@ public class Tracker implements TrackerConnection{
 			torrentManager.setDownloadUpload(this.downloaded, this.uploaded);
 		}
 
-		URL request = constructURL(torrentInfo, peerId , setListeningPort(6881, 6889));
+		trackerGETURL = constructURL(torrentInfo, peerId , port);
 
 		HashMap<ByteBuffer, Object> response = null;
-
+		byte[] resData;
 		try {
-			sendHTTPGET(request);
+			resData = sendHTTPGET(trackerGETURL);
 
-			if (response == null) {
+			if (resData == null) {
 				System.err.println("Error communicating with tracker");
 				return null;
 			}
-			response = (HashMap<ByteBuffer, Object>) Bencoder2.decode(this.response);
+			response = (HashMap<ByteBuffer, Object>) Bencoder2.decode(resData);
 		} catch (BencodingException e1) {
 			System.err.println("Error decoding tracker response");
 			return null;
@@ -179,7 +179,4 @@ public class Tracker implements TrackerConnection{
 		return peers;
 	}
 
-	public byte[] getResponse() {
-		return response;
-	}
 }
