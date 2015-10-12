@@ -116,7 +116,8 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         return peerId;
     }
 
-    public void addToQueue(Message message){
+    public synchronized void addToQueue(Message message){
+        if (message == null) return;
         queue.add(message);
     }
 

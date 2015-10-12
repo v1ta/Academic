@@ -189,7 +189,7 @@ public class Peer extends Thread implements PeerConnection{
 		}
 	}
 
-	public void send(Message msg) throws IOException {
+	public synchronized void send(Message msg) throws IOException {
 		if (this.out == null) {
 			throw new IOException(this
 					+ " cannot send a message on an empty socket.");
@@ -350,7 +350,6 @@ public class Peer extends Thread implements PeerConnection{
 								this.peer.send(new Piece(requestMessage.index, requestMessage.start, dataToUpload, peer));
 
 								peer.totalUpload += dataToUpload.length;
-								peer.torrentManager.rateCalculatorTotalUpload+= dataToUpload.length;
 							} catch(Exception e){
 								System.err.println("Error uploading to Peer: " + this.peer);
 							}
