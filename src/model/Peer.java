@@ -30,7 +30,7 @@ public class Peer extends Thread implements PeerConnection{
 	public double uploadRate = 0;
 	boolean isRunning = true;
 	public long totalUpload = 0L;
-	Uploader uploader;
+	//Uploader uploader;
 
 	ByteArrayOutputStream piece = null;
 	int currentPieceIndex = -1;
@@ -45,13 +45,17 @@ public class Peer extends Thread implements PeerConnection{
 		this.tracker = tracker;
 		this.torrentManager = torrentManager;
 		this.connection = new Connection(this);
-		this.uploader = new Uploader(this);
-		this.uploader.isRunning = true;
-		this.uploader.start();
+		//this.uploader = new Uploader(this);
+		//this.uploader.isRunning = true;
+		//this.uploader.start();
 		this.bitfield = new boolean[tracker.torrentInfo.piece_hashes.length];
 		Arrays.fill(this.bitfield, false);
 	}
 
+	/**
+	 * Connect to a given peerID, only one for PHASE 1
+	 * @return
+	 */
 	public boolean connect() {
 
 
@@ -96,12 +100,22 @@ public class Peer extends Thread implements PeerConnection{
 		}
 	}
 
+	/**
+	 * Thread safe socket creation
+	 * @throws IOException
+	 */
 	public synchronized void createSocket() throws IOException {
 		this.socket = new Socket(this.host, this.port);
 		this.in = this.socket.getInputStream();
 		this.out = this.socket.getOutputStream();
 	}
 
+	/**
+	 * Handshake with peer
+	 * @param peer
+	 * @param infohash
+	 * @return
+	 */
 	public byte[] handshake(byte[] peer, byte[] infohash) {
 		int index = 0;
 		byte[] handshake = new byte[68];
@@ -148,9 +162,9 @@ public class Peer extends Thread implements PeerConnection{
 		}
 		if (this.socket != null) {
 			this.connection.isRunning = false;
-			this.uploader.isRunning = false;
+			//this.uploader.isRunning = false;
 			this.connection.interrupt();
-			this.uploader.interrupt();
+			//this.uploader.interrupt();
 		}
 
 		try {
@@ -171,7 +185,9 @@ public class Peer extends Thread implements PeerConnection{
 
 	}
 
-
+	/**
+	 * Read bytes from inputstream
+	 */
 	public void run() {
 		while(this.socket != null){
 			Message msg;
@@ -189,6 +205,11 @@ public class Peer extends Thread implements PeerConnection{
 		}
 	}
 
+	/**
+	 * Construct a message and write to outputstream
+	 * @param msg
+	 * @throws IOException
+	 */
 	public synchronized void send(Message msg) throws IOException {
 		if (this.out == null) {
 			throw new IOException(this
@@ -198,6 +219,9 @@ public class Peer extends Thread implements PeerConnection{
 		Message.encode(msg, out);
 	}
 
+	/**
+	 * Choke constructor wrapped w/Exception catching
+	 */
 	public void choke(){
 		try {
 			send(new Choke(1, Message.choke, this));
@@ -207,6 +231,9 @@ public class Peer extends Thread implements PeerConnection{
 		choke[0] = true;
 	}
 
+	/**
+	 * Unchoke message wrapped w/Exception catching
+	 */
 	public void unchoke(){
 		try {
 			send(new Unchoke(1, Message.unchoke, this));
@@ -216,7 +243,7 @@ public class Peer extends Thread implements PeerConnection{
 		choke[0] = false;
 	}
 
-	public Request getNextRequest() {
+	public Request getRequest() {
 		int piece_length = this.tracker.torrentInfo.piece_length;
 		int file_length = this.tracker.torrentInfo.file_length;
 		int requestSize = tracker.requestSize;
@@ -242,7 +269,14 @@ public class Peer extends Thread implements PeerConnection{
 		return request;
 	}
 
-	public boolean appendToPieceAndVerifyIfComplete(Piece pieceMsg, ByteBuffer[] hashes, TorrentManager manager) {
+	/**
+	 * Constructs a piece
+	 * @param pieceMsg
+	 * @param hashes
+	 * @param manager
+	 * @return true if complete piece, else false
+	 */
+	public boolean appendAndVerify(Piece pieceMsg, ByteBuffer[] hashes, TorrentManager manager) {
 
 		int currentPieceLength = (pieceMsg.index == (this.tracker.torrentInfo.piece_hashes.length - 1)) ?
 				this.tracker.torrentInfo.file_length % this.tracker.torrentInfo.piece_length : this.tracker.torrentInfo.piece_length;
@@ -280,6 +314,9 @@ public class Peer extends Thread implements PeerConnection{
 		return false;
 	}
 
+	/**
+	 * Periodic keepalive messages
+	 */
 	class Connection extends Thread {
 		public Peer peer;
 		public int interval = 120000;
@@ -310,6 +347,7 @@ public class Peer extends Thread implements PeerConnection{
 		return new String(peerId) + " " + port + " " + host;
 	}
 
+	/*
 	public class Uploader extends Thread{
 
 		LinkedBlockingQueue<Request> uploadQueue = null;
@@ -332,9 +370,6 @@ public class Peer extends Thread implements PeerConnection{
 			System.err.println("Added Message: " + message);
 		}
 
-		/* (non-Javadoc)
-         * @see java.lang.Thread#run()
-         */
 		public void run(){
 
 			Request requestMessage = null;
@@ -369,5 +404,6 @@ public class Peer extends Thread implements PeerConnection{
 			}
 		}
 	}
+	*/
 
 }

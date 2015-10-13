@@ -28,12 +28,6 @@ public class TorrentManager extends Thread implements TorrentProtocol{
     public static boolean haveFullFile = false;
     boolean downloadingStatus = true;
 
-
-    //long rateCalculatorTotalUpload = 0L;
-    Timer rateCalculatorTimer;
-    public int numHashFails = 0;
-
-
     /**
      * TorrentManager handles protocol logic and relevant object creation tasks
      * @param torrentFile
@@ -121,6 +115,7 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         queue.add(message);
     }
 
+    //prob need to rename this as it will need to handle upload "seed" too
     public void leech() throws IOException, InterruptedException {
         Message msg;
         if ((msg = queue.take()) == null) return;
@@ -132,7 +127,7 @@ public class TorrentManager extends Thread implements TorrentProtocol{
             case Message.unchoke:
                 msg.peer.choke[1] = false;
                 if(msg.peer.interest[0] == true){
-                    msg.peer.send(msg.peer.getNextRequest());
+                    msg.peer.send(msg.peer.getRequest());
                 }
                 break;
             case Message.interested:
@@ -176,7 +171,7 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                 Have haveMsg = new Have(((Piece)msg).index, msg.peer);
 
                 if (!this.bits[((Piece)msg).index]) {
-                    if (msg.peer.appendToPieceAndVerifyIfComplete((Piece)msg, tracker.torrentInfo.piece_hashes, this) == true) {
+                    if (msg.peer.appendAndVerify((Piece) msg, tracker.torrentInfo.piece_hashes, this) == true) {
                         this.bits[(msg).index] = true;
 
                         for (Peer p : this.peers) {
@@ -196,7 +191,7 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                 }
 
                 if(!msg.peer.choke[1])
-                    msg.peer.send(msg.peer.getNextRequest());
+                    msg.peer.send(msg.peer.getRequest());
                 break;
             case Message.cancel:
                 System.err.println("Not responsible for cancel....");
@@ -349,18 +344,11 @@ public class TorrentManager extends Thread implements TorrentProtocol{
     }
 
    class Choking extends TimerTask{
-
-        /** The manager. */
         TorrentManager torrentManager;
-
-
         Choking(TorrentManager torrentManager){
             this.torrentManager = torrentManager;
         }
 
-	/* (non-Javadoc)
-	 * @see java.util.TimerTask#run()
-	 */
     public void run(){
 
         Peer worst = null;

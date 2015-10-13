@@ -19,10 +19,9 @@ public class RUBTClient extends Thread{
 
 	public static void main(String args[]){
 
-		RUBTClient mainApp = new RUBTClient();
-		mainApp.start();
-		EventQueue.invokeLater(new Runnable() {
+		final Runnable runnable = new Runnable() {
 			public TorrentManager client = null;
+
 			public void run() {
 
 				try {
@@ -46,9 +45,11 @@ public class RUBTClient extends Thread{
 				client.start();
 
 
+			}
+		};
 
-		}
-		});
+		Thread t = new Thread(runnable);
+		t.start();
 
 
 	}
