@@ -27,10 +27,7 @@ public class Peer extends Thread implements PeerConnection{
 	public int previousIndex = -1;
 	private int currentByteOffset = 0;
 	public long totalDownload =0L;
-	public double uploadRate = 0;
 	boolean isRunning = true;
-	public long totalUpload = 0L;
-	//Uploader uploader;
 
 	ByteArrayOutputStream piece = null;
 	int currentPieceIndex = -1;
@@ -45,24 +42,17 @@ public class Peer extends Thread implements PeerConnection{
 		this.tracker = tracker;
 		this.torrentManager = torrentManager;
 		this.connection = new Connection(this);
-		//this.uploader = new Uploader(this);
-		//this.uploader.isRunning = true;
-		//this.uploader.start();
 		this.bitfield = new boolean[tracker.torrentInfo.piece_hashes.length];
 		Arrays.fill(this.bitfield, false);
 	}
 
-	/**
-	 * Connect to a given peerID, only one for PHASE 1
-	 * @return
-	 */
 	public boolean connect() {
-
 
 		byte[] id = new byte[4];
 		System.arraycopy(this.peerId, 0, id, 0, 4);
 
 		if (!Arrays.equals(id, HashConstants.PEER_ID_PHASE_ONE)){
+			System.err.println("wrong id");
 			return false;
 		}
 
@@ -88,6 +78,7 @@ public class Peer extends Thread implements PeerConnection{
 			is.readFully(response);
 			this.socket.setSoTimeout(130000);
 			if (!confirmHandshake(tracker.torrentInfo.info_hash.array(), response)) {
+				System.err.println("handshake failed");
 				return false;
 			} else {
 				this.start();
@@ -162,9 +153,7 @@ public class Peer extends Thread implements PeerConnection{
 		}
 		if (this.socket != null) {
 			this.connection.isRunning = false;
-			//this.uploader.isRunning = false;
 			this.connection.interrupt();
-			//this.uploader.interrupt();
 		}
 
 		try {
@@ -185,9 +174,6 @@ public class Peer extends Thread implements PeerConnection{
 
 	}
 
-	/**
-	 * Read bytes from inputstream
-	 */
 	public void run() {
 		while(this.socket != null){
 			Message msg;
@@ -205,11 +191,6 @@ public class Peer extends Thread implements PeerConnection{
 		}
 	}
 
-	/**
-	 * Construct a message and write to outputstream
-	 * @param msg
-	 * @throws IOException
-	 */
 	public synchronized void send(Message msg) throws IOException {
 		if (this.out == null) {
 			throw new IOException(this
@@ -217,30 +198,6 @@ public class Peer extends Thread implements PeerConnection{
 		}
 		System.err.println("Sending " + msg + " to " + this);
 		Message.encode(msg, out);
-	}
-
-	/**
-	 * Choke constructor wrapped w/Exception catching
-	 */
-	public void choke(){
-		try {
-			send(new Choke(1, Message.choke, this));
-		} catch (IOException e) {
-			System.err.println("Unable to send choke to peer");
-		}
-		choke[0] = true;
-	}
-
-	/**
-	 * Unchoke message wrapped w/Exception catching
-	 */
-	public void unchoke(){
-		try {
-			send(new Unchoke(1, Message.unchoke, this));
-		} catch (IOException e) {
-			System.err.println("Unable to send unchoke to peer");
-		}
-		choke[0] = false;
 	}
 
 	public Request getRequest() {
@@ -269,13 +226,6 @@ public class Peer extends Thread implements PeerConnection{
 		return request;
 	}
 
-	/**
-	 * Constructs a piece
-	 * @param pieceMsg
-	 * @param hashes
-	 * @param manager
-	 * @return true if complete piece, else false
-	 */
 	public boolean appendAndVerify(Piece pieceMsg, ByteBuffer[] hashes, TorrentManager manager) {
 
 		int currentPieceLength = (pieceMsg.index == (this.tracker.torrentInfo.piece_hashes.length - 1)) ?
@@ -314,9 +264,6 @@ public class Peer extends Thread implements PeerConnection{
 		return false;
 	}
 
-	/**
-	 * Periodic keepalive messages
-	 */
 	class Connection extends Thread {
 		public Peer peer;
 		public int interval = 120000;
@@ -347,63 +294,6 @@ public class Peer extends Thread implements PeerConnection{
 		return new String(peerId) + " " + port + " " + host;
 	}
 
-	/*
-	public class Uploader extends Thread{
 
-		LinkedBlockingQueue<Request> uploadQueue = null;
-		public Peer peer;
-
-		public boolean isRunning = false;
-
-		Uploader(Peer peer){
-			this.peer = peer;
-			this.uploadQueue = new LinkedBlockingQueue<Request>();
-		}
-
-		public void recieveRequest(Request message) {
-			if (message == null) {
-				System.err.println("Null messages should not be handed to the uploader.");
-				return;
-			}
-
-			this.uploadQueue.add(message);
-			System.err.println("Added Message: " + message);
-		}
-
-		public void run(){
-
-			Request requestMessage = null;
-			while(this.isRunning == true){
-				if(this.peer.choke[0] == false){
-					try {
-						if (( requestMessage = this.uploadQueue.take()) != null) {
-							try {
-								byte[] dataToUpload;
-								dataToUpload = this.peer.torrentManager.readFile(requestMessage.index, requestMessage.start, requestMessage.mlength);
-								tracker.uploaded += dataToUpload.length;
-								this.peer.uploadRate += dataToUpload.length;
-								this.peer.send(new Piece(requestMessage.index, requestMessage.start, dataToUpload, peer));
-
-								peer.totalUpload += dataToUpload.length;
-							} catch(Exception e){
-								System.err.println("Error uploading to Peer: " + this.peer);
-							}
-						}
-					} catch (InterruptedException e) {
-						break;
-					}
-
-				}
-				else{
-					try {
-						Thread.sleep(250);
-					} catch (InterruptedException e) {
-						break;
-					}
-				}
-			}
-		}
-	}
-	*/
 
 }

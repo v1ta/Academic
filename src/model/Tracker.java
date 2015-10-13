@@ -17,7 +17,7 @@ import util.*;
 public class Tracker implements TrackerConnection{
 
 	public  URL trackerGETURL;
-	ServerSocket listenSocket;
+	public ServerSocket listenSocket;
 	public TorrentInfo torrentInfo;
 	TorrentManager torrentManager;
 	int downloaded;

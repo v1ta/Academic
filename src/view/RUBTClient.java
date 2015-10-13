@@ -1,14 +1,11 @@
 package view;
 
-import model.Peer;
 import model.TorrentManager;
 
-import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
-import util.HashConstants;
 
 /**
  * Logic visible to the user

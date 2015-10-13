@@ -22,10 +22,8 @@ public class TorrentManager extends Thread implements TorrentProtocol{
     File torrentFile;
     public boolean[] bits;
     public int curUnchoked = 0;
-    Choking optUnchokingObj;
-    public Timer optUnchoke;
+    int[] SHAhash;
     boolean isRunning = false;
-    public static boolean haveFullFile = false;
     boolean downloadingStatus = true;
 
     /**
@@ -53,46 +51,23 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         }
 
         currReqBits = new boolean[tracker.torrentInfo.piece_length];
+        SHAhash = new int[tracker.torrentInfo.piece_hashes.length];
+
         Arrays.fill(currReqBits, false);
+        Arrays.fill(this.SHAhash, 0);
         isRunning = true;
         peers = tracker.update("started", this);
 
+
         if (peers != null) {
-            int i = 1;
             for (Peer p : peers) {
                 System.out.println(p.toString());
-
-                    if (!p.connect()) {
+                    if (!p.connect())
                         System.err.println("Wrong Peer IP or unable to contact peer" + p);
-                    } else {
-                        this.peers.add(p);
-                        ++i;
-                    }
+
             }
         }
         this.tracker.timer = new Timer();
-
-        this.optUnchoke = new Timer();
-        this.optUnchokingObj = new Choking(this);
-        this.optUnchoke.schedule(this.optUnchokingObj, 30000, 30000);
-
-    }
-
-    public void haveFile() throws IOException {
-        if(haveFullFile) {
-            downloadingStatus = false;
-            tracker.update("completed", this);
-            tracker.downloaded = tracker.torrentInfo.file_length;
-            byte[] bitfield = HashSequenceHelper.boolToBitfieldArray(this.bits);
-            for (Peer peer : this.peers) {
-                try {
-                    peer.send(new Bitfield(bitfield, peer));
-                } catch (Exception e) {
-                    System.err.println("Exception sending have message to peer " + peer + ": " + e);
-                    continue;
-                }
-            }
-        }
     }
 
     public byte[] genPeerId(){
@@ -115,7 +90,6 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         queue.add(message);
     }
 
-    //prob need to rename this as it will need to handle upload "seed" too
     public void leech() throws IOException, InterruptedException {
         Message msg;
         if ((msg = queue.take()) == null) return;
@@ -220,7 +194,6 @@ public class TorrentManager extends Thread implements TorrentProtocol{
     }
 
     public void setDownloadUpload(int download, int upload) {
-        String down = Integer.toString(download);
         String up = Integer.toString(upload);
 
         try {
@@ -233,44 +206,6 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         }
     }
 
-    public boolean[] checkPieces() throws IOException {
-
-        int numPieces = tracker.torrentInfo.piece_hashes.length;
-        int pieceLength = tracker.torrentInfo.piece_length;
-        int fileLength = tracker.torrentInfo.file_length;
-        ByteBuffer[] pieceHashes = tracker.torrentInfo.piece_hashes;
-        int lastPieceLength = fileLength % pieceLength == 0 ? pieceLength : fileLength % pieceLength;
-
-        byte[] piece = null;
-        boolean[] verifiedPieces = new boolean[numPieces];
-
-        for (int i = 0; i < numPieces; i++) {
-            if (i != numPieces - 1) {
-                piece = new byte[pieceLength];
-                piece = readFile(i, 0, pieceLength);
-            } else {
-                piece = new byte[lastPieceLength];
-                piece = readFile(i, 0, lastPieceLength);
-            }
-
-            if (verifySHA1(piece, pieceHashes[i], i)) {
-                verifiedPieces[i] = true;
-
-            }
-        }
-
-        for(int i = 0; i < verifiedPieces.length; i++){
-            if(verifiedPieces[i] != false){
-
-            }
-
-            if(i == verifiedPieces.length - 1){
-                this.downloadingStatus = false;
-            }
-        }
-
-        return verifiedPieces;
-    }
 
     public static boolean verifySHA1(byte[] piece, ByteBuffer SHA1Hash, int index) {
         MessageDigest SHA1;
@@ -320,17 +255,6 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         }
     }
 
-    public byte[] readFile(int index, int offset, int length) throws IOException {
-        RandomAccessFile raf = new RandomAccessFile(this.outputFile, "r");
-        byte[] data = new byte[length];
-
-        raf.seek(tracker.torrentInfo.piece_length * index + offset);
-        raf.readFully(data);
-        raf.close();
-
-        return data;
-    }
-
     public void run() {
         System.out.print("Started DLing File");
         while (this.isRunning == true) {
@@ -343,55 +267,4 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         System.out.print("File Finished");
     }
 
-   class Choking extends TimerTask{
-        TorrentManager torrentManager;
-        Choking(TorrentManager torrentManager){
-            this.torrentManager = torrentManager;
-        }
-
-    public void run(){
-
-        Peer worst = null;
-        long worstRate = Long.MAX_VALUE;
-        for(Peer p : torrentManager.peers){
-            if(p.choke[0] == false){
-                if(torrentManager.downloadingStatus == true){
-                    if(worstRate > p.totalDownload){
-                        worst = p;
-                        worstRate = p.totalDownload;
-                    }
-                } else {
-                    if(worstRate > p.totalUpload){
-                        worst = p;
-                        worstRate = p.totalUpload;
-                    }
-                }
-            }
-        }
-
-        ArrayList<Integer> indices = new ArrayList<Integer>();
-        for(Peer p : torrentManager.peers){
-            if(p.choke[0] == true){
-                indices.add(torrentManager.peers.indexOf(p));
-            }
-        }
-
-        System.out.println(indices);
-
-        Random random = new Random();
-        int n = random.nextInt(indices.size());
-
-        worst.choke[0] = true;
-        torrentManager.peers.get(indices.get(n)).choke[0] = false;
-
-        worst.choke();
-        torrentManager.peers.get(indices.get(n)).unchoke();
-
-        for(Peer p : torrentManager.peers){
-            p.totalDownload = 0;
-            p.totalDownload = 0;
-        }
-
-    }
-}
 }
