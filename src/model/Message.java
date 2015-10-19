@@ -91,7 +91,6 @@ public abstract class Message implements MessageCreation{
                     message.addPayload(dos);
                 }
                 dos.flush();
-
             }
         }
     }

@@ -16,14 +16,14 @@ public class TorrentManager extends Thread implements TorrentProtocol{
 
     ArrayList<Peer> peers;
     public Tracker tracker;
-    LinkedBlockingQueue<Message> queue = new LinkedBlockingQueue<>();
+    public LinkedBlockingQueue<Message> queue;
     boolean[] currReqBits;
     File outputFile;
     File torrentFile;
     public boolean[] bits;
     public int curUnchoked = 0;
     int[] SHAhash;
-    boolean isRunning = false;
+    public boolean isRunning = false;
     boolean downloadingStatus = true;
 
     /**
@@ -39,12 +39,13 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         } catch (IOException e) {
             e.printStackTrace();
         }
-
+        peers = new ArrayList<>();
     }
 
     public void configure() throws IOException {
         try {
             tracker = new Tracker(new TorrentInfo(Files.readAllBytes(torrentFile.toPath())), genPeerId(), this);
+            bits  = new boolean[tracker.torrentInfo.piece_hashes.length];
         } catch (BencodingException | IOException e){
             System.err.println("ERROR: Failed to instantiate torrentInfo\nException: "
                     + e.getMessage());
@@ -55,19 +56,27 @@ public class TorrentManager extends Thread implements TorrentProtocol{
 
         Arrays.fill(currReqBits, false);
         Arrays.fill(this.SHAhash, 0);
+
+
+
         isRunning = true;
-        peers = tracker.update("started", this);
+        ArrayList<Peer> allPeers  = tracker.update("started", this);
 
+        this.tracker.timer = new Timer();
+        this.tracker.swarm = new Swarm(this);
+        this.tracker.timer.schedule(this.tracker.swarm,  this.tracker.interval * 1000, this.tracker.interval * 1000);
 
-        if (peers != null) {
-            for (Peer p : peers) {
+        queue = new LinkedBlockingQueue<>();
+        if (allPeers != null) {
+            for (Peer p : allPeers) {
                 System.out.println(p.toString());
                     if (!p.connect())
                         System.err.println("Wrong Peer IP or unable to contact peer" + p);
+                    else
+                       peers.add(p);
 
             }
         }
-        this.tracker.timer = new Timer();
     }
 
     public byte[] genPeerId(){
@@ -149,6 +158,7 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                         this.bits[(msg).index] = true;
 
                         for (Peer p : this.peers) {
+                            if(p.isRunning)
                             try {
                                 p.send(haveMsg);
                             } catch (Exception e) {

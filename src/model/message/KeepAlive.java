@@ -10,5 +10,5 @@ public class KeepAlive extends Message {
     public KeepAlive(int length, byte id, Peer peer){super(length,id, peer);}
 
     @Override
-    protected void addPayload(DataOutputStream out) throws IOException {}
+    public void addPayload(DataOutputStream out) throws IOException {}
 }

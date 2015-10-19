@@ -41,23 +41,21 @@ public class Peer extends Thread implements PeerConnection{
 		this.host = host;
 		this.tracker = tracker;
 		this.torrentManager = torrentManager;
-		this.connection = new Connection(this);
+		//this.connection = new Connection(this);
 		this.bitfield = new boolean[tracker.torrentInfo.piece_hashes.length];
 		Arrays.fill(this.bitfield, false);
 	}
 
 	public boolean connect() {
 
-		byte[] id = new byte[4];
-		System.arraycopy(this.peerId, 0, id, 0, 4);
+		byte[] id = new byte[6];
+		System.arraycopy(this.peerId, 0, id, 0, 6);
 
 		if (!Arrays.equals(id, HashConstants.PEER_ID_PHASE_ONE)){
-			System.err.println("wrong id");
 			return false;
 		}
 
 		try {
-
 			createSocket();
 
 			DataOutputStream os = new DataOutputStream(this.out);
@@ -69,7 +67,7 @@ public class Peer extends Thread implements PeerConnection{
 				return false;
 			}
 
-			os.write(handshake(peerId, tracker.torrentInfo.info_hash.array()));
+			os.write(handshake(tracker.peerId, tracker.torrentInfo.info_hash.array()));
 			os.flush();
 
 			byte[] response = new byte[68];
@@ -77,6 +75,9 @@ public class Peer extends Thread implements PeerConnection{
 			this.socket.setSoTimeout(10000);
 			is.readFully(response);
 			this.socket.setSoTimeout(130000);
+
+			choke[0] = false;
+
 			if (!confirmHandshake(tracker.torrentInfo.info_hash.array(), response)) {
 				System.err.println("handshake failed");
 				return false;
@@ -119,9 +120,7 @@ public class Peer extends Thread implements PeerConnection{
 
 		/* message id */
 		byte[] zero = new byte[8];
-		for(int i = 0; i < zero.length; i++){
-			zero[i] = 0;
-		}
+
 		System.arraycopy(zero, 0, handshake, index, zero.length);
 		index += zero.length;
 
@@ -175,7 +174,7 @@ public class Peer extends Thread implements PeerConnection{
 	}
 
 	public void run() {
-		while(this.socket != null){
+		while(this.socket != null && !socket.isClosed()){
 			Message msg;
 			try {
 				msg = Message.MessageFactory(this.in, this);

@@ -10,5 +10,5 @@ public class Choke extends Message {
     public Choke(int length, byte id, Peer peer){super(length,id,peer);}
 
     @Override
-    protected void addPayload(DataOutputStream out) throws IOException {return;}
+    public void addPayload(DataOutputStream out) throws IOException {return;}
 }

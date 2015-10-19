@@ -38,7 +38,7 @@ public class RUBTClient extends Thread{
 
 				client.bits = new boolean[client.tracker.torrentInfo.piece_hashes.length];
 				Arrays.fill(client.bits, false);
-
+				client.isRunning = true;
 				client.start();
 
 
@@ -47,6 +47,7 @@ public class RUBTClient extends Thread{
 
 		Thread t = new Thread(runnable);
 		t.start();
+
 
 
 	}

@@ -22,11 +22,12 @@ public class Tracker implements TrackerConnection{
 	TorrentManager torrentManager;
 	int downloaded;
 	int uploaded;
+	public Swarm swarm;
 	int interval;
 	String event;
 	int port;
 	public Timer timer;
-	byte[] peerId;
+	public byte[] peerId;
 	public final int requestSize = 16000;
 
 	/**
