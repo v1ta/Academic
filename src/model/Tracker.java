@@ -17,16 +17,17 @@ import util.*;
 public class Tracker implements TrackerConnection{
 
 	public  URL trackerGETURL;
-	ServerSocket listenSocket;
+	public ServerSocket listenSocket;
 	public TorrentInfo torrentInfo;
 	TorrentManager torrentManager;
 	int downloaded;
 	int uploaded;
+	public Swarm swarm;
 	int interval;
 	String event;
 	int port;
 	public Timer timer;
-	byte[] peerId;
+	public byte[] peerId;
 	public final int requestSize = 16000;
 
 	/**
@@ -38,7 +39,7 @@ public class Tracker implements TrackerConnection{
 		this.torrentInfo = torrentInfo;
 		this.torrentManager = torrentManager;
 		this.peerId = peerId;
-		this.port = setListeningPort(6881, 6889);
+		this.port = setListeningPort(6887, 6889);
 		//trackerGETURL = constructURL(this.torrentInfo,  peerId , this.port );
 	}
 

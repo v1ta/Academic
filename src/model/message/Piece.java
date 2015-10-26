@@ -17,7 +17,7 @@ public class Piece extends Message {
     }
 
     @Override
-    protected void addPayload(DataOutputStream out) throws IOException {
+    public void addPayload(DataOutputStream out) throws IOException {
         out.writeInt(this.index);
         out.writeInt(this.start);
         out.write(block);

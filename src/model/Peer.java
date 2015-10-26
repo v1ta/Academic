@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import action.PeerConnection;
@@ -28,10 +27,7 @@ public class Peer extends Thread implements PeerConnection{
 	public int previousIndex = -1;
 	private int currentByteOffset = 0;
 	public long totalDownload =0L;
-	public double uploadRate = 0;
 	boolean isRunning = true;
-	public long totalUpload = 0L;
-	Uploader uploader;
 
 	ByteArrayOutputStream piece = null;
 	int currentPieceIndex = -1;
@@ -39,28 +35,27 @@ public class Peer extends Thread implements PeerConnection{
 	LinkedBlockingQueue<Request> requestQueue = new LinkedBlockingQueue<>();
 
 	public Peer(byte[] peerId, int port, String host, Tracker tracker, TorrentManager torrentManager) {
-		//super("Peer@" + ip + ":" + port);
+		super("Peer@" + host + ":" + port);
 		this.peerId = peerId;
 		this.port = port;
 		this.host = host;
 		this.tracker = tracker;
 		this.torrentManager = torrentManager;
-		this.connection = new Connection(this);
-		this.uploader = new Uploader(this);
-		this.uploader.isRunning = true;
-		this.uploader.start();
+		//this.connection = new Connection(this);
 		this.bitfield = new boolean[tracker.torrentInfo.piece_hashes.length];
 		Arrays.fill(this.bitfield, false);
 	}
 
 	public boolean connect() {
 
-		//check to see if peer id doesn't start with RU11
-		byte[] id = new byte[4];
-		System.arraycopy(this.peerId, 0, id, 0, 4);
+		byte[] id = new byte[6];
+		System.arraycopy(this.peerId, 0, id, 0, 6);
+
+		if (!Arrays.equals(id, HashConstants.PEER_ID_PHASE_ONE)){
+			return false;
+		}
 
 		try {
-
 			createSocket();
 
 			DataOutputStream os = new DataOutputStream(this.out);
@@ -72,7 +67,7 @@ public class Peer extends Thread implements PeerConnection{
 				return false;
 			}
 
-			os.write(handshake(peerId, tracker.torrentInfo.info_hash.array()));
+			os.write(handshake(tracker.peerId, tracker.torrentInfo.info_hash.array()));
 			os.flush();
 
 			byte[] response = new byte[68];
@@ -80,7 +75,11 @@ public class Peer extends Thread implements PeerConnection{
 			this.socket.setSoTimeout(10000);
 			is.readFully(response);
 			this.socket.setSoTimeout(130000);
+
+			choke[0] = false;
+
 			if (!confirmHandshake(tracker.torrentInfo.info_hash.array(), response)) {
+				System.err.println("handshake failed");
 				return false;
 			} else {
 				this.start();
@@ -93,12 +92,22 @@ public class Peer extends Thread implements PeerConnection{
 		}
 	}
 
+	/**
+	 * Thread safe socket creation
+	 * @throws IOException
+	 */
 	public synchronized void createSocket() throws IOException {
 		this.socket = new Socket(this.host, this.port);
 		this.in = this.socket.getInputStream();
 		this.out = this.socket.getOutputStream();
 	}
 
+	/**
+	 * Handshake with peer
+	 * @param peer
+	 * @param infohash
+	 * @return
+	 */
 	public byte[] handshake(byte[] peer, byte[] infohash) {
 		int index = 0;
 		byte[] handshake = new byte[68];
@@ -111,9 +120,7 @@ public class Peer extends Thread implements PeerConnection{
 
 		/* message id */
 		byte[] zero = new byte[8];
-		for(int i = 0; i < zero.length; i++){
-			zero[i] = 0;
-		}
+
 		System.arraycopy(zero, 0, handshake, index, zero.length);
 		index += zero.length;
 
@@ -145,9 +152,7 @@ public class Peer extends Thread implements PeerConnection{
 		}
 		if (this.socket != null) {
 			this.connection.isRunning = false;
-			this.uploader.isRunning = false;
 			this.connection.interrupt();
-			this.uploader.interrupt();
 		}
 
 		try {
@@ -161,16 +166,15 @@ public class Peer extends Thread implements PeerConnection{
 			this.socket = null;
 			this.in = null;
 			this.out = null;
-			//this.manager.peers.remove(this);
+			this.torrentManager.peers.remove(this);
 			isRunning = false;
 
 		}
 
 	}
 
-
 	public void run() {
-		while(this.socket != null){
+		while(this.socket != null && !socket.isClosed()){
 			Message msg;
 			try {
 				msg = Message.MessageFactory(this.in, this);
@@ -186,7 +190,7 @@ public class Peer extends Thread implements PeerConnection{
 		}
 	}
 
-	public void send(Message msg) throws IOException {
+	public synchronized void send(Message msg) throws IOException {
 		if (this.out == null) {
 			throw new IOException(this
 					+ " cannot send a message on an empty socket.");
@@ -195,27 +199,7 @@ public class Peer extends Thread implements PeerConnection{
 		Message.encode(msg, out);
 	}
 
-	public void choke(){
-		try {
-			send(new Choke(1, Message.choke, this));
-		} catch (IOException e) {
-			System.err.println("Unable to send choke to peer");
-		}
-		choke[0] = true;
-		//RUBTClient.updatePeerChokeStatus(this, true);
-	}
-
-	public void unchoke(){
-		try {
-			send(new Unchoke(1, Message.unchoke, this));
-		} catch (IOException e) {
-			System.err.println("Unable to send unchoke to peer");
-		}
-		choke[0] = false;
-		//RUBTClient.updatePeerChokeStatus(this, false);
-	}
-
-	public Request getNextRequest() {
+	public Request getRequest() {
 		int piece_length = this.tracker.torrentInfo.piece_length;
 		int file_length = this.tracker.torrentInfo.file_length;
 		int requestSize = tracker.requestSize;
@@ -241,7 +225,7 @@ public class Peer extends Thread implements PeerConnection{
 		return request;
 	}
 
-	public boolean appendToPieceAndVerifyIfComplete(Piece pieceMsg, ByteBuffer[] hashes, TorrentManager manager) {
+	public boolean appendAndVerify(Piece pieceMsg, ByteBuffer[] hashes, TorrentManager manager) {
 
 		int currentPieceLength = (pieceMsg.index == (this.tracker.torrentInfo.piece_hashes.length - 1)) ?
 				this.tracker.torrentInfo.file_length % this.tracker.torrentInfo.piece_length : this.tracker.torrentInfo.piece_length;
@@ -252,7 +236,6 @@ public class Peer extends Thread implements PeerConnection{
 
 		try {
 			piece.write(pieceMsg.block, 0, pieceMsg.block.length);
-			//RUBTClient.log(Integer.toString(this.piece.toByteArray().length));
 		} catch (Exception e) {
 			System.err.println("Unable to write to file at " + pieceMsg.index + " with offset " + pieceMsg.start);
 		}
@@ -305,77 +288,11 @@ public class Peer extends Thread implements PeerConnection{
 		}
 	}
 
-	@Override
+
 	public String toString() {
-		try {
-			return "Peer{" +
-                    "peerId=" + new String(peerId, "UTF-8") +
-                    '}';
-		} catch (UnsupportedEncodingException e) {
-			System.err.println("Failed to print peerId\nEXCEPTION: " + e.getMessage());
-			return e.getMessage();
-		}
+		return new String(peerId) + " " + port + " " + host;
 	}
 
-	public class Uploader extends Thread{
 
-		LinkedBlockingQueue<Request> uploadQueue = null;
-		public Peer peer;
-
-		public boolean isRunning = false;
-
-		Uploader(Peer peer){
-			this.peer = peer;
-			this.uploadQueue = new LinkedBlockingQueue<Request>();
-		}
-
-		public void recieveRequest(Request message) {
-			if (message == null) {
-				System.err.println("Null messages should not be handed to the uploader.");
-				return;
-			}
-
-			this.uploadQueue.add(message);
-			System.err.println("Added Message: " + message);
-		}
-
-		/* (non-Javadoc)
-         * @see java.lang.Thread#run()
-         */
-		public void run(){
-
-			Request requestMessage = null;
-			while(this.isRunning == true){
-				if(this.peer.choke[0] == false){
-					try {
-						if (( requestMessage = this.uploadQueue.take()) != null) {
-							try {
-								byte[] dataToUpload;
-								dataToUpload = this.peer.torrentManager.readFile(requestMessage.index, requestMessage.start, requestMessage.mlength);
-								tracker.uploaded += dataToUpload.length;
-								this.peer.uploadRate += dataToUpload.length;
-								this.peer.send(new Piece(requestMessage.index, requestMessage.start, dataToUpload, peer));
-
-								peer.totalUpload += dataToUpload.length;
-								peer.torrentManager.rateCalculatorTotalUpload+= dataToUpload.length;
-							} catch(Exception e){
-								System.err.println("Error uploading to Peer: " + this.peer);
-							}
-						}
-					} catch (InterruptedException e) {
-						break;
-					}
-
-				}
-				else{
-					try {
-						Thread.sleep(250);
-					} catch (InterruptedException e) {
-						break;
-					}
-				}
-			}
-		}
-	}
 
 }

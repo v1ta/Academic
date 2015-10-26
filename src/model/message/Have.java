@@ -13,7 +13,7 @@ public class Have extends Message {
     }
 
     @Override
-    protected void addPayload(DataOutputStream out) throws IOException {
+    public void addPayload(DataOutputStream out) throws IOException {
         out.writeInt(index);
         return;
     }

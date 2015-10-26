@@ -1,10 +1,11 @@
 package model;
 
+import action.MessageCreation;
 import model.message.*;
 
 import java.io.*;
 
-public abstract class Message {
+public abstract class Message implements MessageCreation{
 
     /* byte constants for message factory */
     protected static final byte keepAlive = -1;
@@ -90,12 +91,11 @@ public abstract class Message {
                     message.addPayload(dos);
                 }
                 dos.flush();
-
             }
         }
     }
 
-    protected abstract void addPayload(DataOutputStream out) throws IOException;
+    public abstract void addPayload(DataOutputStream out) throws IOException;
 
     @Override
     public String toString() {

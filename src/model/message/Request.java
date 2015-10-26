@@ -14,12 +14,20 @@ public class Request extends Message {
         this.index = index;
         this.start = start;
         this.mlength = length;
+        System.out.println("test");
     }
 
     @Override
-    protected void addPayload(DataOutputStream out) throws IOException {
+    public void addPayload(DataOutputStream out) throws IOException {
         out.writeInt(this.index);
         out.writeInt(this.start);
         out.writeInt(mlength);
+    }
+
+    public String toString() {
+        return new String("Length: " + this.length + " ID: " + this.id
+                + " Index: " + this.index + " Start: " + this.start
+                + " Block: " + this.mlength);
+
     }
 }

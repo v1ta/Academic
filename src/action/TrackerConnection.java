@@ -7,6 +7,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.URL;
+<<<<<<< HEAD
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,6 +20,12 @@ import util.Bencoder2;
 import util.BencodingException;
 import util.HashConstants;
 import util.HashSequenceHelper;
+=======
+import java.util.ArrayList;
+
+import model.Peer;
+import model.TorrentManager;
+>>>>>>> a7d12b69c515aec397d91f9fb598ec5a0464f3dd
 import util.TorrentInfo;
 
 /**
@@ -49,6 +56,7 @@ public interface TrackerConnection {
 	 * @return
 	 */
 	URL constructURL(TorrentInfo torrentInfo, byte[] peerId, int port);
+<<<<<<< HEAD
 	
 	/**
 	 * updates new events
@@ -66,4 +74,15 @@ public interface TrackerConnection {
 	byte[] getResponse();
 
 
+=======
+
+	/**
+	 * Implements the logic to send a GET request, decode the response.
+	 * @param event
+	 * @param torrentManager
+	 * @return ArrayList of Peer objects
+	 * @throws IOException
+	 */
+	public ArrayList<Peer> update(String event, TorrentManager torrentManager) throws IOException;
+>>>>>>> a7d12b69c515aec397d91f9fb598ec5a0464f3dd
 }
