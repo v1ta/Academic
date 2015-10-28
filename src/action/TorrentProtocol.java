@@ -20,13 +20,13 @@ public interface TorrentProtocol {
     byte[] genPeerId();
 
     /**
-     * Handles TorrentManager initialization which can't be done in the constructor
+     * Handles TorrentClient initialization which can't be done in the constructor
      * @throws IOException
      */
-    void configure() throws IOException;
+    void initialize() throws IOException;
 
     /**
-     * Addes to the message queue
+     * Adds to the message queue
      * @param message
      */
     void addToQueue(model.Message message);
@@ -36,17 +36,8 @@ public interface TorrentProtocol {
      * @throws IOException
      * @throws InterruptedException
      */
-    void leech() throws IOException, InterruptedException;
+    void readMessage() throws IOException, InterruptedException;
 
-    /**
-     * Updates the output file
-     * @param piece
-     * @param SHA1Hash
-     * @param data
-     * @return
-     * @throws Exception
-     */
-    boolean UpdateFile(Piece piece, ByteBuffer SHA1Hash,	byte[] data) throws Exception;
 
     /**
      * Exactly what the method sig says
@@ -55,15 +46,18 @@ public interface TorrentProtocol {
      */
     void setDownloadUpload(int download, int upload);
 
-    /**
-     * See method sig
-     * @return
-     */
-    boolean isFileComplete();
 
     /**
      * Logic for getting upload amount
      * @throws IOException
      */
     void getUpload() throws IOException;
+
+    /**
+     * Close the ports and files associated with a torrent client on exit
+     * @throws IOException
+     */
+    void close() throws IOException;
+
+
 }

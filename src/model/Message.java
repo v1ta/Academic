@@ -37,17 +37,13 @@ public abstract class Message implements MessageCreation{
     static final String[] TYPE_NAMES = new String[]{"Choke", "Unchoke", "Interested",
         "NotInterested", "Have", "Bitfield", "Request", "Piece", "Cancel", "Port"};
 
-    public static Message MessageFactory(final InputStream in, Peer peer) throws IOException {
+    public static Message Factory(final InputStream in, Peer peer) throws IOException {
         DataInputStream dataIn = new DataInputStream(in);
 
         int length = dataIn.readInt();
-
-
-        if (length == 0) {
-            return new KeepAlive(0,(byte)255,peer);
-        }
-
         int bit = dataIn.readByte();
+
+        if (length == 0) return new KeepAlive(0,(byte)255,peer);
 
         switch (bit) {
             case (choke):

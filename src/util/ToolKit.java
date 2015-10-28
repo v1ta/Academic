@@ -18,9 +18,11 @@
  */
 package util;
 
+import model.TorrentClient;
+
 import java.util.*;
 import java.nio.*;
-
+import java.io.*;
 /**
  * Contains a number of methods useful for debugging and developing programs
  * using Bencoding methods.&nbsp; This class is specifically designed to be used
@@ -153,6 +155,36 @@ public class ToolKit
         }
     }
 
+    public static boolean[] checkPieces(TorrentInfo torrentInfo, File outputFile) throws IOException {
+
+        int numPieces = torrentInfo.piece_hashes.length;
+        int pieceLength = torrentInfo.piece_length;
+        int fileLength = torrentInfo.file_length;
+        ByteBuffer[] pieceHashes = torrentInfo.piece_hashes;
+        int lastPieceLength = fileLength % pieceLength == 0 ? pieceLength : fileLength % pieceLength;
+
+        byte[] piece = null;
+        boolean[] verifiedPieces = new boolean[numPieces];
+
+        for (int i = 0; i < numPieces; i++) {
+            if (i != numPieces - 1) {
+                piece = new byte[pieceLength];
+                piece = readFile(i, 0, pieceLength, torrentInfo, outputFile);
+            } else {
+                piece = new byte[lastPieceLength];
+                piece = readFile(i, 0, lastPieceLength, torrentInfo, outputFile);
+            }
+
+
+
+            if (TorrentClient.verifySHA1(piece, pieceHashes[i], i)) {
+                verifiedPieces[i] = true;
+            }
+        }
+
+        return verifiedPieces;
+    }
+
     /**
      * Helper method that prints out a dictionary/map.
      * @param map the dictionary/map to print.
@@ -178,6 +210,17 @@ public class ToolKit
             System.out.print("(V) ");
             print(val, depth);
         }
+    }
+
+    public static byte[] readFile(int index, int offset, int length, TorrentInfo torrentInfo, File outputFile) throws IOException {
+        RandomAccessFile raf = new RandomAccessFile(outputFile, "r");
+        byte[] data = new byte[length];
+
+        raf.seek(torrentInfo.piece_length * index + offset);
+        raf.read(data);
+        raf.close();
+
+        return data;
     }
     /*
      * Bencoding a method of encoding binary data. Tracker responses, and the metainfo file will be bencoded. 

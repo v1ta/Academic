@@ -5,7 +5,7 @@ import java.net.URL;
 import java.util.ArrayList;
 
 import model.Peer;
-import model.TorrentManager;
+import model.TorrentClient;
 import util.TorrentInfo;
 
 /**
@@ -38,11 +38,11 @@ public interface TrackerConnection {
 	URL constructURL(TorrentInfo torrentInfo, byte[] peerId, int port);
 
 	/**
-	 * Implements the logic to send a GET request, decode the response.
+	 * Implements the logic to send a GET request, decode the response, store response in correct location(s)
 	 * @param event
-	 * @param torrentManager
+	 * @param torrentClient
 	 * @return ArrayList of Peer objects
 	 * @throws IOException
 	 */
-	public ArrayList<Peer> update(String event, TorrentManager torrentManager) throws IOException;
+	 ArrayList<Peer> update(String event, TorrentClient torrentClient) throws IOException;
 }

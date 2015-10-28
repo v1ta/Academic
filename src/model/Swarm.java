@@ -6,33 +6,33 @@ import java.util.Arrays;
 import java.util.TimerTask;
 
 /**
- * Created by Joseph on 10/15/15.
+ * Swarm handles peer updates, it is launched in a new thread to handle concurrency issues.
  */
 public class Swarm extends TimerTask  {
-    TorrentManager torrentManager;
+    TorrentClient torrentClient;
 
-    public Swarm(TorrentManager torrentManager){
-        this.torrentManager = torrentManager;
+    public Swarm(TorrentClient torrentClient){
+        this.torrentClient = torrentClient;
     }
 
     public void run(){
         ArrayList<Peer> peers = null;
         try {
-            peers = torrentManager.tracker.update("",torrentManager);
+            peers = torrentClient.tracker.update("", torrentClient);
         } catch (IOException e) {
             e.printStackTrace();
         }
         boolean isAlreadyAPeer = false;
 
         for(Peer p : peers){
-            for(Peer q : torrentManager.peers){
+            for(Peer q : torrentClient.peers){
                 if(Arrays.equals(p.peerId, q.peerId)){
                     isAlreadyAPeer = true;
                     break;
                 }
             }
             if(isAlreadyAPeer == false){
-                this.torrentManager.peers.add(p);
+                this.torrentClient.peers.add(p);
             } else {
                 isAlreadyAPeer = false;
             }
