@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 import model.Peer;
+<<<<<<< HEAD
 import model.TorrentManager;
 import util.Bencoder2;
 import util.BencodingException;
@@ -26,6 +27,9 @@ import java.util.ArrayList;
 import model.Peer;
 import model.TorrentManager;
 >>>>>>> a7d12b69c515aec397d91f9fb598ec5a0464f3dd
+=======
+import model.TorrentClient;
+>>>>>>> f31405678895e418237c459e0d625c4d549b59fe
 import util.TorrentInfo;
 
 /**
@@ -77,12 +81,16 @@ public interface TrackerConnection {
 =======
 
 	/**
-	 * Implements the logic to send a GET request, decode the response.
+	 * Implements the logic to send a GET request, decode the response, store response in correct location(s)
 	 * @param event
-	 * @param torrentManager
+	 * @param torrentClient
 	 * @return ArrayList of Peer objects
 	 * @throws IOException
 	 */
+<<<<<<< HEAD
 	public ArrayList<Peer> update(String event, TorrentManager torrentManager) throws IOException;
 >>>>>>> a7d12b69c515aec397d91f9fb598ec5a0464f3dd
+=======
+	 ArrayList<Peer> update(String event, TorrentClient torrentClient) throws IOException;
+>>>>>>> f31405678895e418237c459e0d625c4d549b59fe
 }

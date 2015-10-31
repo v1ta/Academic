@@ -3,7 +3,7 @@ package action;
 public interface PeerConnection {
 
 	/**
-	 * Generate handshake with a peer
+	 * Generate handshake with a peer, record response
 	 * @param peer
 	 * @param infohash
 	 * @return the byte[]
@@ -11,7 +11,7 @@ public interface PeerConnection {
 	byte[] handshake(byte[] peer, byte[] infohash);
 
 	/**
-	 * Confirm the result of a handshake
+	 * Confirm the result of handshake()
 	 * @param infoHash
 	 * @param response
 	 * @return
@@ -20,6 +20,7 @@ public interface PeerConnection {
 
 	/**
 	 * Establish a connection with a peer
+	 * Launches new thread if true
 	 * @return
 	 */
 	boolean connect();

@@ -1,6 +1,6 @@
 package view;
 
-import model.TorrentManager;
+import model.TorrentClient;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,12 +17,11 @@ public class RUBTClient extends Thread{
 	public static void main(String args[]){
 
 		final Runnable runnable = new Runnable() {
-			public TorrentManager client = null;
+			public TorrentClient client = null;
 
 			public void run() {
-
 				try {
-					client = new TorrentManager(new File(System.getProperty("user.dir")
+					client = new TorrentClient(new File(System.getProperty("user.dir")
 							+ File.separator
 							+ "data"
 							+ File.separator
@@ -31,25 +30,18 @@ public class RUBTClient extends Thread{
 					e.printStackTrace();
 				}
 				try {
-					client.configure();
+					client.initialize();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-
 				client.bits = new boolean[client.tracker.torrentInfo.piece_hashes.length];
 				Arrays.fill(client.bits, false);
 				client.isRunning = true;
 				client.start();
-
-
 			}
 		};
-
 		Thread t = new Thread(runnable);
+
 		t.start();
-
-
-
 	}
-
 }

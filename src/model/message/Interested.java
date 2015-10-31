@@ -8,8 +8,7 @@ import java.io.IOException;
 
 public class Interested extends Message {
     public Interested(int length, byte id, Peer peer){
-        super(1, Message.interested, peer);
-        System.out.println("test22");
+        super(length, id, peer);
     }
 
     @Override

@@ -13,7 +13,7 @@ import util.HashConstants;
 public class Peer extends Thread implements PeerConnection{
 
 	Tracker tracker;
-	TorrentManager torrentManager;
+	TorrentClient torrentClient;
 	Socket socket;
 	int port;
 	public byte[] peerId;
@@ -34,20 +34,19 @@ public class Peer extends Thread implements PeerConnection{
 	int totalBytesWritten = 0;
 	LinkedBlockingQueue<Request> requestQueue = new LinkedBlockingQueue<>();
 
-	public Peer(byte[] peerId, int port, String host, Tracker tracker, TorrentManager torrentManager) {
-		super("Peer@" + host + ":" + port);
+	public Peer(byte[] peerId, int port, String host, Tracker tracker, TorrentClient torrentClient) {
+		super("Peer {" + host + ":" + port+"}");
 		this.peerId = peerId;
 		this.port = port;
 		this.host = host;
 		this.tracker = tracker;
-		this.torrentManager = torrentManager;
+		this.torrentClient = torrentClient;
 		//this.connection = new Connection(this);
 		this.bitfield = new boolean[tracker.torrentInfo.piece_hashes.length];
 		Arrays.fill(this.bitfield, false);
 	}
 
 	public boolean connect() {
-
 		byte[] id = new byte[6];
 		System.arraycopy(this.peerId, 0, id, 0, 6);
 
@@ -72,9 +71,9 @@ public class Peer extends Thread implements PeerConnection{
 
 			byte[] response = new byte[68];
 
-			this.socket.setSoTimeout(10000);
+			socket.setSoTimeout(10000);
 			is.readFully(response);
-			this.socket.setSoTimeout(130000);
+			socket.setSoTimeout(130000);
 
 			choke[0] = false;
 
@@ -82,32 +81,23 @@ public class Peer extends Thread implements PeerConnection{
 				System.err.println("handshake failed");
 				return false;
 			} else {
+				System.out.println("Handshake data: " + Arrays.toString(response));
 				this.start();
 				return true;
 			}
 
 		} catch (Exception e) {
-			System.err.println("Failed to connect to peer @ " + this.host +"\nEXCEPTION: " + e.getMessage());
+			System.err.println("Failed to connect to peer @ " + host +"\nEXCEPTION: " + e.getMessage());
 			return false;
 		}
 	}
 
-	/**
-	 * Thread safe socket creation
-	 * @throws IOException
-	 */
 	public synchronized void createSocket() throws IOException {
-		this.socket = new Socket(this.host, this.port);
-		this.in = this.socket.getInputStream();
-		this.out = this.socket.getOutputStream();
+		socket = new Socket(host, port);
+		in = socket.getInputStream();
+		out = socket.getOutputStream();
 	}
 
-	/**
-	 * Handshake with peer
-	 * @param peer
-	 * @param infohash
-	 * @return
-	 */
 	public byte[] handshake(byte[] peer, byte[] infohash) {
 		int index = 0;
 		byte[] handshake = new byte[68];
@@ -129,9 +119,8 @@ public class Peer extends Thread implements PeerConnection{
 		index += infohash.length;
 
 		System.arraycopy(peer, 0, handshake, index, peer.length);
-
-
 		System.out.println("handshake : " + handshake);
+
 		return handshake;
 	}
 
@@ -139,59 +128,55 @@ public class Peer extends Thread implements PeerConnection{
 		byte[] peerHash = new byte[20];
 		System.arraycopy(response, 28, peerHash, 0, 20);
 
-		if(!Arrays.equals(peerHash, infoHash))
-		{
-			System.err.println("handshake failed");
+		if(!Arrays.equals(peerHash, infoHash)){
+			System.err.println("Handshake failed");
 			return false;
 		}
+		System.out.println("Verified Handshake");
 		return true;
 	}
+
 	public synchronized void disconnect() {
-		if(this.choke[0] == false){
-			this.torrentManager.curUnchoked -= 1;
-		}
-		if (this.socket != null) {
-			this.connection.isRunning = false;
-			this.connection.interrupt();
+		if (socket != null) {
+			connection.isRunning = false;
+			connection.interrupt();
 		}
 
 		try {
 			if(this.socket!= null)
-				this.socket.close();
+				socket.close();
 
 		} catch (IOException e) {
 			System.err.println("Error closing socket peer");
-
 		} finally {
-			this.socket = null;
-			this.in = null;
-			this.out = null;
-			this.torrentManager.peers.remove(this);
+			socket = null;
+			in = null;
+			out = null;
+			torrentClient.peers.remove(this);
 			isRunning = false;
-
 		}
 
 	}
 
 	public void run() {
-		while(this.socket != null && !socket.isClosed()){
-			Message msg;
+		while(socket != null && !socket.isClosed() ){
+			Message msg = null;
 			try {
-				msg = Message.MessageFactory(this.in, this);
+				msg = Message.Factory(this.in, this);
 			} catch (IOException e) {
-				System.err.println("Invalid stream for peer " + this.toString()+ "\nEXCEPTION: "+ e.getMessage());
+				System.err.println("Invalid stream for peer " + toString()+ "\nEXCEPTION: "+ e.getMessage());
 				e.printStackTrace();
 				break;
 			}
-
 			if (msg != null)
 				if (msg.id == Message.request) requestQueue.add((Request) msg);
-				else torrentManager.addToQueue(msg);
+				else torrentClient.addToQueue(msg);
 		}
+		System.out.println("Closing connection with " + this);
 	}
 
 	public synchronized void send(Message msg) throws IOException {
-		if (this.out == null) {
+		if (out == null) {
 			throw new IOException(this
 					+ " cannot send a message on an empty socket.");
 		}
@@ -200,35 +185,40 @@ public class Peer extends Thread implements PeerConnection{
 	}
 
 	public Request getRequest() {
-		int piece_length = this.tracker.torrentInfo.piece_length;
-		int file_length = this.tracker.torrentInfo.file_length;
+		int piece_length = tracker.torrentInfo.piece_length;
+		int file_length = tracker.torrentInfo.file_length;
 		int requestSize = tracker.requestSize;
-		int numPieces = this.tracker.torrentInfo.piece_hashes.length;
+		int numPieces = tracker.torrentInfo.piece_hashes.length;
+
+		if(this.currentPieceIndex == -1){
+			if((currentPieceIndex = torrentClient.p2PFile.rarePieceBitField(this)) == -1){
+				return null;
+			}
+		}
 
 		if(this.currentPieceIndex == (numPieces - 1)){
-			piece_length = file_length % this.tracker.torrentInfo.piece_length;
+			piece_length = file_length % tracker.torrentInfo.piece_length;
 		}
 
 		if((this.currentByteOffset + requestSize) > piece_length){
 			requestSize = piece_length % requestSize;
 		}
 
-		Request request = new Request(this.currentPieceIndex, this.currentByteOffset, requestSize, this);
+		Request request = new Request(currentPieceIndex, currentByteOffset, requestSize, this);
 
-		if((this.currentByteOffset + requestSize) >= piece_length){
-			this.currentPieceIndex = -1;
-			this.currentByteOffset = 0;
+		if((currentByteOffset + requestSize) >= piece_length){
+			currentPieceIndex = -1;
+			currentByteOffset = 0;
 		} else {
-			this.currentByteOffset += requestSize;
+			currentByteOffset += requestSize;
 		}
-
 		return request;
 	}
 
-	public boolean appendAndVerify(Piece pieceMsg, ByteBuffer[] hashes, TorrentManager manager) {
+	public boolean verifyPiece(TorrentClient client, ByteBuffer[] hashes, Piece pieceMsg) {
 
-		int currentPieceLength = (pieceMsg.index == (this.tracker.torrentInfo.piece_hashes.length - 1)) ?
-				this.tracker.torrentInfo.file_length % this.tracker.torrentInfo.piece_length : this.tracker.torrentInfo.piece_length;
+		int currentPieceLength = (pieceMsg.index == (tracker.torrentInfo.piece_hashes.length - 1)) ?
+				tracker.torrentInfo.file_length % tracker.torrentInfo.piece_length : tracker.torrentInfo.piece_length;
 
 		if (this.piece == null) {
 			this.piece = new ByteArrayOutputStream();
@@ -241,14 +231,14 @@ public class Peer extends Thread implements PeerConnection{
 		}
 
 		if(this.currentPieceIndex == -1){
-			this.totalBytesWritten = 0;
-			this.previousIndex = pieceMsg.index;
-			this.torrentManager.currReqBits[this.previousIndex] = false;
+			totalBytesWritten = 0;
+			previousIndex = pieceMsg.index;
+			torrentClient.p2PFile.currReqBits[this.previousIndex] = false;
 
 			try {
-				if (manager.UpdateFile(pieceMsg, hashes[pieceMsg.index], piece.toByteArray())) {
+				if (client.p2PFile.updateFile(pieceMsg, hashes[pieceMsg.index], piece.toByteArray())) {
 					totalDownload+= currentPieceLength;
-					this.torrentManager.bits[pieceMsg.index] = true;
+					torrentClient.bits[pieceMsg.index] = true;
 					piece = null;
 					return true;
 				} else {
@@ -282,17 +272,14 @@ public class Peer extends Thread implements PeerConnection{
 				try {
 					peer.send(new KeepAlive(0,(byte)255,peer));
 				} catch (IOException e) {
-					System.err.println("Error sending keepalive to peer: " + this.peer);
+					System.err.println("Error sending keep alive to peer: " + this.peer);
 				}
 			}
 		}
 	}
 
-
 	public String toString() {
-		return new String(peerId) + " " + port + " " + host;
+		return new String(peerId) + " {" + host + ":" + port + "}";
 	}
-
-
 
 }

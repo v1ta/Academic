@@ -19,7 +19,7 @@ public class Tracker implements TrackerConnection{
 	public  URL trackerGETURL;
 	public ServerSocket listenSocket;
 	public TorrentInfo torrentInfo;
-	TorrentManager torrentManager;
+	TorrentClient torrentClient;
 	int downloaded;
 	int uploaded;
 	public Swarm swarm;
@@ -35,9 +35,9 @@ public class Tracker implements TrackerConnection{
 	 * @param torrentInfo
 	 * @param peerId
 	 */
-	public Tracker(TorrentInfo torrentInfo, byte[] peerId, TorrentManager torrentManager){
+	public Tracker(TorrentInfo torrentInfo, byte[] peerId, TorrentClient torrentClient){
 		this.torrentInfo = torrentInfo;
-		this.torrentManager = torrentManager;
+		this.torrentClient = torrentClient;
 		this.peerId = peerId;
 		this.port = setListeningPort(6887, 6889);
 		//trackerGETURL = constructURL(this.torrentInfo,  peerId , this.port );
@@ -50,9 +50,9 @@ public class Tracker implements TrackerConnection{
 	 * @param portLowerBound
 	 * @param portUpperBound
 	 */
-	public Tracker(TorrentInfo torrentInfo, byte[] peerId, TorrentManager torrentManager, int portLowerBound, int portUpperBound){
+	public Tracker(TorrentInfo torrentInfo, byte[] peerId, TorrentClient torrentClient, int portLowerBound, int portUpperBound){
 		this.torrentInfo = torrentInfo;
-		this.torrentManager = torrentManager;
+		this.torrentClient = torrentClient;
 		this.peerId = peerId;
 		trackerGETURL = constructURL(this.torrentInfo, peerId , setListeningPort(portLowerBound, portUpperBound) );
 	}
@@ -82,7 +82,7 @@ public class Tracker implements TrackerConnection{
 		return trackerResponse;
 	}
 
-	 public URL constructURL(TorrentInfo torrentInfo, byte[] peerId, int port){
+	public URL constructURL(TorrentInfo torrentInfo, byte[] peerId, int port){
 		StringBuilder URL = new StringBuilder();
 		URL.append(torrentInfo.announce_url.toString());
 		URL.append("?info_hash=");
@@ -108,19 +108,19 @@ public class Tracker implements TrackerConnection{
 
 	}
 
-	public ArrayList<Peer> update(String event, TorrentManager torrentManager) throws IOException {
+	public ArrayList<Peer> update(String event, TorrentClient torrentClient) throws IOException {
 		this.event = event;
 
 		if(this.event.equals("started")){
 			try {
-				torrentManager.getUpload();
+				torrentClient.getUpload();
 
 			} catch (IOException e) {
 				this.downloaded = 0;
 				this.uploaded = 0;
 			}
 		} else {
-			torrentManager.setDownloadUpload(this.downloaded, this.uploaded);
+			torrentClient.setDownloadUpload(this.downloaded, this.uploaded);
 		}
 
 		trackerGETURL = constructURL(torrentInfo, peerId , port);
@@ -145,7 +145,7 @@ public class Tracker implements TrackerConnection{
 			return null;
 		}
 
-		ArrayList<Peer> peers = new ArrayList<Peer>();
+		ArrayList<Peer> peers = new ArrayList<>();
 
 		this.interval = (Integer)response.get(HashConstants.KEY_INTERVAL);
 
@@ -160,7 +160,8 @@ public class Tracker implements TrackerConnection{
 		for (Map<ByteBuffer, Object> rawPeer : peersList) {
 			int peerPort = ((Integer) rawPeer.get(HashConstants.KEY_PORT)).intValue();
 			byte[] peerId = ((ByteBuffer) rawPeer.get(HashConstants.KEY_PEERID)).array();
-			String ip = null;
+			String ip;
+
 			try {
 				ip = new String(((ByteBuffer) rawPeer.get(HashConstants.KEY_IP)).array(),
 						"ASCII");
@@ -169,7 +170,7 @@ public class Tracker implements TrackerConnection{
 				continue;
 			}
 
-			peers.add(new Peer(peerId, peerPort, ip, this, torrentManager));
+			peers.add(new Peer(peerId, peerPort, ip, this, torrentClient));
 		}
 
 		if(this.interval < 0){

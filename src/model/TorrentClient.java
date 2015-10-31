@@ -12,37 +12,34 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class TorrentManager extends Thread implements TorrentProtocol{
+/**
+ * Takes a .p2PFile as a command line argument. Sets up the environment to communicate between a tracker and multiple peer(s)
+ */
+public class TorrentClient extends Thread implements TorrentProtocol{
+
+
 
     ArrayList<Peer> peers;
     public Tracker tracker;
     public LinkedBlockingQueue<Message> queue;
-    boolean[] currReqBits;
+    public P2PFile p2PFile;
     File outputFile;
     File torrentFile;
     public boolean[] bits;
-    public int curUnchoked = 0;
-    int[] SHAhash;
     public boolean isRunning = false;
     boolean downloadingStatus = true;
 
     /**
-     * TorrentManager handles protocol logic and relevant object creation tasks
+     * TorrentClient handles protocol logic and relevant object creation tasks
      * @param torrentFile
      */
-    public TorrentManager(File torrentFile) throws IOException {
+    public TorrentClient(File torrentFile) throws IOException {
         super();
         this.torrentFile = torrentFile;
-        outputFile = new File("video.mov");
-        try {
-            outputFile.createNewFile();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         peers = new ArrayList<>();
     }
 
-    public void configure() throws IOException {
+    public void initialize() throws IOException {
         try {
             tracker = new Tracker(new TorrentInfo(Files.readAllBytes(torrentFile.toPath())), genPeerId(), this);
             bits  = new boolean[tracker.torrentInfo.piece_hashes.length];
@@ -51,20 +48,14 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                     + e.getMessage());
         }
 
-        currReqBits = new boolean[tracker.torrentInfo.piece_length];
-        SHAhash = new int[tracker.torrentInfo.piece_hashes.length];
-
-        Arrays.fill(currReqBits, false);
-        Arrays.fill(this.SHAhash, 0);
-
-
+        p2PFile = new P2PFile(new File("video.mov"), tracker, this);
 
         isRunning = true;
         ArrayList<Peer> allPeers  = tracker.update("started", this);
 
         this.tracker.timer = new Timer();
         this.tracker.swarm = new Swarm(this);
-        this.tracker.timer.schedule(this.tracker.swarm,  this.tracker.interval * 1000, this.tracker.interval * 1000);
+        this.tracker.timer.schedule(tracker.swarm,  tracker.interval * 1000, tracker.interval * 1000);
 
         queue = new LinkedBlockingQueue<>();
         if (allPeers != null) {
@@ -99,10 +90,10 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         queue.add(message);
     }
 
-    public void leech() throws IOException, InterruptedException {
+    public void readMessage() throws IOException, InterruptedException {
         Message msg;
         if ((msg = queue.take()) == null) return;
-
+        System.out.println("Receiving message: " + msg);
         switch (msg.id) {
             case Message.choke:
                 msg.peer.choke[1] = true;
@@ -134,14 +125,12 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                         }
                     }
                 }
-
                 break;
             case Message.bitfield:
                 boolean[] bitfield = HashSequenceHelper.bitfieldToBoolArray(((Bitfield)msg).bitfield, tracker.torrentInfo.piece_hashes.length);
                 for (int i = 0; i < bitfield.length; ++i) {
                     msg.peer.bitfield[i] = bitfield[i];
                 }
-
                 for(int j = 0; j < msg.peer.bitfield.length; j++){
                     if(msg.peer.bitfield[j] == true && this.bits[j] == false){
                         msg.peer.send(new Interested(1, Message.interested, msg.peer));
@@ -150,11 +139,10 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                     }
                 }
                 break;
-            case Message.piece:
+            case Message.piece: //!!TODO Not sure if this working properly, find way to debug
                 Have haveMsg = new Have(((Piece)msg).index, msg.peer);
-
                 if (!this.bits[((Piece)msg).index]) {
-                    if (msg.peer.appendAndVerify((Piece) msg, tracker.torrentInfo.piece_hashes, this) == true) {
+                    if (msg.peer.verifyPiece(this, tracker.torrentInfo.piece_hashes, (Piece) msg) == true) {
                         this.bits[(msg).index] = true;
 
                         for (Peer p : this.peers) {
@@ -168,12 +156,12 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                         }
                     }
                 }
-                if (this.isFileComplete()) {
+                if (p2PFile.isFileComplete()) {
                     this.downloadingStatus = false;
-                    this.tracker.update("completed", this);
+                    this.tracker.update("Completed", this);
+                    System.out.println("File completed");
                     return;
                 }
-
                 if(!msg.peer.choke[1])
                     msg.peer.send(msg.peer.getRequest());
                 break;
@@ -182,24 +170,6 @@ public class TorrentManager extends Thread implements TorrentProtocol{
                 break;
             default:
                 break;
-        }
-    }
-
-    public boolean UpdateFile(Piece piece, ByteBuffer SHA1Hash,	byte[] data) throws Exception {
-        if (verifySHA1(data, SHA1Hash, piece.index)) {
-            RandomAccessFile raf = new RandomAccessFile(this.outputFile, "rws");
-
-            raf.seek((tracker.torrentInfo.piece_length * piece.index));
-            raf.write(data);
-            raf.close();
-
-            tracker.downloaded += data.length;
-
-            System.out.println("Wrote to output file piece: " + piece.index);
-            return true;
-        } else{
-            System.out.println("Failed to verify piece: " + piece.index);
-            return false;
         }
     }
 
@@ -216,7 +186,6 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         }
     }
 
-
     public static boolean verifySHA1(byte[] piece, ByteBuffer SHA1Hash, int index) {
         MessageDigest SHA1;
 
@@ -231,25 +200,16 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         byte[] pieceHash = SHA1.digest();
 
         if (Arrays.equals(pieceHash, SHA1Hash.array())) {
-            System.err.println("Verified - " + SHA1.digest() + " - " + SHA1Hash.array() + " for index " + index);
+            System.out.println("Verified - " + SHA1.digest() + " - " + SHA1Hash.array() + " for index " + index);
             return true;
         } else {
             return false;
         }
     }
 
-    public boolean isFileComplete() {
-        for(int i = 0; i < this.bits.length; i++){
-            if(this.bits[i] == false){
-                return false;
-            }
-        }
-        return true;
-    }
-
     public void getUpload() throws IOException {
         String input;
-        File tFile = new File(outputFile.getName() + ".stats");
+        File tFile = new File(p2PFile.outputFile.getName() + ".stats");
         BufferedReader in = null;
 
         if (tFile.exists()) {
@@ -269,12 +229,27 @@ public class TorrentManager extends Thread implements TorrentProtocol{
         System.out.print("Started DLing File");
         while (this.isRunning == true) {
             try {
-                leech();
+                readMessage();
             } catch (Exception e) {
                 System.err.println("Error: " + e);
             }
         }
         System.out.print("File Finished");
     }
+
+    public void close() throws IOException {
+        this.isRunning = false;
+        if (this.peers != null) {
+            for (Peer p : this.peers) {
+                try {
+                    p.disconnect();
+                } catch (Exception e) {
+                    System.err.println("Error while shutting down peer  " + p + " : " + e);
+                    continue;
+                }
+            }
+        }
+    }
+
 
 }
