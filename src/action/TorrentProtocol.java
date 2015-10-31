@@ -13,7 +13,7 @@ import model.Peer;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
->>>>>>> a7d12b69c515aec397d91f9fb598ec5a0464f3dd
+//>>>>>>> a7d12b69c515aec397d91f9fb598ec5a0464f3dd
 
 /**
  * A set of method to facilitate the implementation of a bit torrent client
