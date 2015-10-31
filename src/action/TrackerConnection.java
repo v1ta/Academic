@@ -60,7 +60,7 @@ public interface TrackerConnection {
 	 * @return
 	 */
 	URL constructURL(TorrentInfo torrentInfo, byte[] peerId, int port);
-<<<<<<< HEAD
+
 	
 	/**
 	 * updates new events
@@ -78,7 +78,7 @@ public interface TrackerConnection {
 	byte[] getResponse();
 
 
-=======
+
 
 	/**
 	 * Implements the logic to send a GET request, decode the response, store response in correct location(s)
@@ -87,10 +87,8 @@ public interface TrackerConnection {
 	 * @return ArrayList of Peer objects
 	 * @throws IOException
 	 */
-<<<<<<< HEAD
+
 	public ArrayList<Peer> update(String event, TorrentManager torrentManager) throws IOException;
->>>>>>> a7d12b69c515aec397d91f9fb598ec5a0464f3dd
-=======
-	 ArrayList<Peer> update(String event, TorrentClient torrentClient) throws IOException;
->>>>>>> f31405678895e418237c459e0d625c4d549b59fe
+
+
 }

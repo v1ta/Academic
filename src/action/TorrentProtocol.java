@@ -1,15 +1,10 @@
 package action;
 
-<<<<<<< HEAD
-=======
 import model.*;
 import model.message.Piece;
->>>>>>> a7d12b69c515aec397d91f9fb598ec5a0464f3dd
 
 import model.Peer;
 
-<<<<<<< HEAD
-=======
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -53,12 +48,12 @@ public interface TorrentProtocol {
      */
     void setDownloadUpload(int download, int upload);
 
-<<<<<<< HEAD
+
     /**
      * See method sig
      * @return
      */
-<<<<<<< HEAD
+
     byte[] genPeerId();
     
     /**
@@ -140,20 +135,14 @@ public interface TorrentProtocol {
      */
     void run() ;
 
-    
-=======
     boolean isFileComplete();
-=======
->>>>>>> f31405678895e418237c459e0d625c4d549b59fe
 
     /**
      * Logic for getting upload amount
      * @throws IOException
      */
     void getUpload() throws IOException;
-<<<<<<< HEAD
->>>>>>> a7d12b69c515aec397d91f9fb598ec5a0464f3dd
-=======
+
 
     /**
      * Close the ports and files associated with a torrent client on exit
@@ -161,6 +150,4 @@ public interface TorrentProtocol {
      */
     void close() throws IOException;
 
-
->>>>>>> f31405678895e418237c459e0d625c4d549b59fe
 }

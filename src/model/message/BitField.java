@@ -6,11 +6,11 @@ import model.Peer;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-public class Bitfield extends Message {
+public class BitField extends Message {
 
     public final byte[] bitfield;
 
-    public Bitfield(final byte[] bitfield, Peer peer) {
+    public BitField(final byte[] bitfield, Peer peer) {
         super(bitfield.length + 1, Message.bitfield, peer);
         this.bitfield = bitfield;
     }

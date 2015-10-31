@@ -47,7 +47,7 @@ public abstract class Message implements MessageCreation{
 
         switch (bit) {
             case (choke):
-                return new Choke(1, choke, peer);
+                return new choke(1, choke, peer);
             case (unchoke):
                 return new Unchoke(1, unchoke, peer);
             case (interested):
@@ -59,7 +59,7 @@ public abstract class Message implements MessageCreation{
             case (bitfield):
                 byte[] arr = new byte[length - 1];
                 dataIn.readFully(arr);
-                return new Bitfield(arr, peer);
+                return new BitField(arr, peer);
             case (piece):
                 int ind = dataIn.readInt();
                 int start = dataIn.readInt();

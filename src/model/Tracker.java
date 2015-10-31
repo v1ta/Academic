@@ -10,6 +10,7 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.*;
 
+import action.TorrentManager;
 import action.TrackerConnection;
 import util.*;
 
@@ -149,8 +150,7 @@ public class Tracker implements TrackerConnection{
 
 		this.interval = (Integer)response.get(HashConstants.KEY_INTERVAL);
 
-		List<Map<ByteBuffer, Object>> peersList = (List<Map<ByteBuffer, Object>>) response
-				.get(HashConstants.KEY_PEERS);
+		List<Map<ByteBuffer, Object>> peersList = (List<Map<ByteBuffer, Object>>) response.get(HashConstants.KEY_PEERS);
 
 		if (peersList == null) {
 			System.err.println("List of peers given by tracker is null");
@@ -179,6 +179,18 @@ public class Tracker implements TrackerConnection{
 
 		System.out.println("Converted: " + peers);
 		return peers;
+	}
+
+	@Override
+	public ArrayList<Peer> update(String event, TorrentManager torrentManager) throws IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public byte[] getResponse() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
