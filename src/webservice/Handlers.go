@@ -3,53 +3,112 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
-
-	"github.com/gorilla/mux"
+	//"io"
+	//"io/ioutil"
+	"github.com/julienschmidt/httprouter"
+	//"github.com/swhite24/go-rest-tutorial/models"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
-func Index(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Welcome!")
+type (
+	// studentController represents the controller for operating on the student resource
+	StudentController struct {
+		session *mgo.Session
+	}
+)
+
+// NewstudentController provides a reference to a studentController with provided mongo session
+func NewStudentController(s *mgo.Session) *StudentController {
+	return &StudentController{s}
 }
 
-func TodoIndex(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+// Getstudent retrieves an individual student resource
+func (uc StudentController) GetStudent(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	// Grab id
+	id := p.ByName("id")
 
-	if err := json.NewEncoder(w).Encode(todos); err != nil {
+	// Verify id is ObjectId, otherwise bail
+	if !bson.IsObjectIdHex(id) {
+		w.WriteHeader(404)
+		return
+	}
+
+	// Grab id
+	oid := bson.ObjectIdHex(id)
+
+	// Stub student
+	u := Student{}
+
+	// Fetch student
+	if err := uc.session.DB("").C("students").FindId(oid).One(&u); err != nil {
+		w.WriteHeader(404)
+		return
+	}
+
+	// Marshal provided interface into JSON structure
+	uj, _ := json.Marshal(u)
+
+	// Write content-type, statuscode, payload
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	fmt.Fprintf(w, "%s", uj)
+}
+
+// Createstudent creates a new student resource
+func (uc StudentController) CreateStudent(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	// Stub an student to be populated from the body
+	u := Student{}
+	/*
+	contents, err := ioutil.ReadAll(r.Body)
+	if err != nil{
 		panic(err)
 	}
+	*/
+	//json.Unmarshal([]byte(string(contents)), &u)
+	//fmt.Println(u.Name)
+	// Populate the student data
+	decoder := json.NewDecoder(r.Body)
+	decoder.Decode(&u)
+	if err != nil {
+        panic(err)
+    }
+	// Add an Id
+	//u.NetID = bson.NewObjectId()
+
+	// Write the student to mongo
+	uc.session.DB("").C("students").Insert(u)
+
+	// Marshal provided interface into JSON structure
+	uj, _ := json.Marshal(u)
+
+	// Write content-type, statuscode, payload
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	fmt.Fprintf(w, "%s", uj)
 }
 
-func TodoShow(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	todoId := vars["todoId"]
-	fmt.Fprintln(w, "Todo show:", todoId)
-}
+// Removestudent removes an existing student resource
+func (uc StudentController) RemoveStudent(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	// Grab id
+	id := p.ByName("id")
 
-func TodoCreate(w http.ResponseWriter, r *http.Request) {
-    var todo Todo
-    body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
-    if err != nil {
-        panic(err)
-    }
-    if err := r.Body.Close(); err != nil {
-        panic(err)
-    }
-    if err := json.Unmarshal(body, &todo); err != nil {
-        w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-        w.WriteHeader(422) // unprocessable entity
-        if err := json.NewEncoder(w).Encode(err); err != nil {
-            panic(err)
-        }
-    }
+	// Verify id is ObjectId, otherwise bail
+	if !bson.IsObjectIdHex(id) {
+		w.WriteHeader(404)
+		return
+	}
 
-    t := RepoCreateTodo(todo)
-    w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-    w.WriteHeader(http.StatusCreated)
-    if err := json.NewEncoder(w).Encode(t); err != nil {
-        panic(err)
-    }
+	// Grab id
+	oid := bson.ObjectIdHex(id)
+
+	// Remove student
+	if err := uc.session.DB("").C("students").RemoveId(oid); err != nil {
+		w.WriteHeader(404)
+		return
+	}
+
+	// Write status
+	w.WriteHeader(200)
 }
