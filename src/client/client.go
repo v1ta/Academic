@@ -7,6 +7,10 @@ import (
 			"gopkg.in/mgo.v2/bson"
 			"github.com/fatih/structs"
 			"strconv"
+	"net/http"
+	"io/ioutil"
+	"os"
+	"encoding/json"
 )
 
 var dataFlag Student
@@ -49,6 +53,40 @@ func init() {
 	flag.Var(&dataFlag, "data", "Student Object")
 }
 
+func sendGet(url string, data *Student) {
+    encode, err := json.Marshal(&data)
+    if err != nil{
+	fmt.Printf("%s", err)
+        os.Exit(1)
+    }
+    
+    encodedString := string(encode)
+    resp, err := http.Get(encodedString)
+    if err != nil {
+        fmt.Printf("%s", err)
+        os.Exit(1)
+    } 
+    robots, err := ioutil.ReadAll(resp.Body)
+    resp.Body.Close()
+    if err != nil {
+	fmt.Printf("%s", err)
+        os.Exit(1)
+    }
+
+    var decode Student
+    err = json.Unmarshal(robots, decode)
+    if err != nil {
+        fmt.Printf("%s", err)
+        os.Exit(1)
+    }
+
+    fmt.Println("%s", decode.NetID)
+}
+
+func sendPost(url string, data *Student) {
+    
+}
+
 func main(){
     urlPtr := flag.String("url", "http://localhost:8080", "Usage: -url=<URL of the webservice>")
     methodPtr := flag.String("method", "LIST", "Usage: -method=<Method to invoke on the webservice>")
@@ -56,9 +94,9 @@ func main(){
 
     flag.Parse()
 
-    //fmt.Println("url:", *urlPtr)
-    //fmt.Println("method:", *methodPtr)
-    //fmt.Println("year:", *yearPtr)
+    fmt.Println("url:", *urlPtr)
+    fmt.Println("method:", *methodPtr)
+    fmt.Println("year:", *yearPtr)
     if *(&dataFlag.NetID) != ""{
 
 	    fields := m.Fields()
@@ -75,6 +113,23 @@ func main(){
 		}
     } 
 
+    data := &Student {
+	Id:"",
+	NetID: "123", 
+        Name: "daoun",
+        Major: "cs",
+        Year: 2016,
+        Grade: 90,
+        Rating: "A",
+    }
+    
 
+    if *methodPtr == "Create" || *methodPtr == "create" {
+	sendPost(*urlPtr, data)
+    } else if *methodPtr == "List" || *methodPtr == "list" || *methodPtr == "LIST" {
+	sendGet(*urlPtr, data)
+    } else {
+	fmt.Println("i dont know")
+    }
 
 }
