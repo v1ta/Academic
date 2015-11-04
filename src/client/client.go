@@ -27,7 +27,7 @@ func main(){
     methodPtr := flag.String("method", "LIST", "Usage: -method=<Method to invoke on the webservice>")
     dataPtr := flag.String("data", "", "student")
     flag.Parse()
-
+    fmt.Println(*dataPtr)
 
     if *methodPtr == "Create" {
         fmt.Println("create")

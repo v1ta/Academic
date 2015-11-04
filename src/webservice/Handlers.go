@@ -60,22 +60,15 @@ func (uc StudentController) GetStudent(w http.ResponseWriter, r *http.Request, p
 func (uc StudentController) CreateStudent(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	// Stub an student to be populated from the body
 	u := Student{}
-	/*
-	contents, err := ioutil.ReadAll(r.Body)
-	if err != nil{
-		panic(err)
-	}
-	*/
+	
+	//contents, err := ioutil.ReadAll(r.Body)
+	//if err != nil{
+	//	panic(err)
+	//}
+	
 	//json.Unmarshal([]byte(string(contents)), &u)
-	//fmt.Println(u.Name)
-	// Populate the student data
-	decoder := json.NewDecoder(r.Body)
-	decoder.Decode(&u)
-	if err != nil {
-        panic(err)
-    }
-	// Add an Id
-	//u.NetID = bson.NewObjectId()
+	json.NewDecoder(r.Body).Decode(&u)
+	u.NetID = bson.NewObjectId()
 
 	// Write the student to mongo
 	uc.session.DB("").C("students").Insert(u)
