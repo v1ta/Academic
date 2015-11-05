@@ -19,7 +19,7 @@ func main() {
 
 	r.POST("/Student", uc.CreateStudent)
 
-	r.DELETE("/Student/", uc.RemoveStudent)
+	r.DELETE("/Student", uc.RemoveStudent)
 
 	http.ListenAndServe("localhost:8080", r)
 }
@@ -35,5 +35,3 @@ func getSession() *mgo.Session {
 	// Deliver session
 	return s
 }
-
-//s, err := mgo.Dial("mongodb://dsproject:password@dogen.mongohq.com:10052/bow-ties-are-hard-to-tie")

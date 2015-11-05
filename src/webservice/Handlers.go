@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	//"io"
 	"io/ioutil"
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
@@ -67,7 +66,6 @@ func (uc StudentController) GetStudent(w http.ResponseWriter, r *http.Request, p
 }
 
 func (uc StudentController) CreateStudent(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	// Stub an student to be populated from the body
 	u := Student{}
 	
 	contents, err := ioutil.ReadAll(r.Body)
@@ -79,29 +77,27 @@ func (uc StudentController) CreateStudent(w http.ResponseWriter, r *http.Request
 
 	u.NetID = bson.NewObjectId()
 
-	// Write the student to mongo
 	uc.session.DB("").C("students").Insert(u)
 
-	// Marshal provided interface into JSON structure
 	uj, _ := json.Marshal(u)
 
-	// Write content-type, statuscode, payload
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 	fmt.Fprintf(w, "%s", uj)
 }
 
+//incomplete function 
 func (uc StudentController) RemoveStudent(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	fmt.Println("it works")
+	contents, err := ioutil.ReadAll(r.Body)
+	if err != nil{
+		panic(err)
+	}
 
-	name := p.ByName("name")
-	//test := name[strings.Index(name, "=")+1:]
-
-	// Remove student
-	if err := uc.session.DB("").C("students").Remove(bson.M{"name": name}); err != nil {
+	if err := uc.session.DB("").C("students").Remove(bson.M{"name": contents}); err != nil {
 		w.WriteHeader(404)
 		return
 	}
 
-	// Write status
 	w.WriteHeader(200)
 }
