@@ -13,7 +13,7 @@ func main() {
 
 	uc := NewStudentController(getSession())
 
-	r.GET("/Student/getstudent:field", uc.GetStudent)
+	r.GET("/getstudent", uc.GetStudent)
 
 	r.GET("/Student/listall", uc.ListStudents)
 
@@ -21,7 +21,9 @@ func main() {
 
 	r.DELETE("/Student", uc.RemoveStudent)
 
-	http.ListenAndServe("localhost:8080", r)
+	r.GET("/Student", uc.UpdateStudents)
+
+	http.ListenAndServe("localhost:1234", r)
 }
 
 func getSession() *mgo.Session {
@@ -35,3 +37,5 @@ func getSession() *mgo.Session {
 	// Deliver session
 	return s
 }
+
+//s, err := mgo.Dial("mongodb://dsproject:password@dogen.mongohq.com:10052/bow-ties-are-hard-to-tie")
