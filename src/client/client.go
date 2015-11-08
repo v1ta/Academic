@@ -96,7 +96,7 @@ func update(url string){
 }
 
 func main(){
-    urlPtr := flag.String("url", "http://localhost:8080", "Usage: -url=<URL of the webservice>")
+    urlPtr := flag.String("url", "http://localhost:1234", "Usage: -url=<URL of the webservice>")
     methodPtr := flag.String("method", "", "Usage: -method=<Method to invoke on the webservice>")
 
     dataPtr := flag.String("data", "", "Usage -data='{\"JSON\":\"Object\"}')")
