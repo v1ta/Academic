@@ -1,9 +1,7 @@
 package main
 
 import (
-	// Standard library packages
 	"net/http"
-
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
 )
@@ -34,8 +32,6 @@ func getSession() *mgo.Session {
 		panic(err)
 	}
 
-	// Deliver session
 	return s
 }
 
-//s, err := mgo.Dial("mongodb://dsproject:password@dogen.mongohq.com:10052/bow-ties-are-hard-to-tie")

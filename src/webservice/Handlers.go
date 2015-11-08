@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	//"net/url"
 	"strconv"
-	//"io"
 	"io/ioutil"
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
@@ -16,13 +14,13 @@ import (
 
 type (
     Class struct{
-        Average   int        `json:"average" bson:"average"`
-        Size int 		`json:"size" bson:"size"`
+        Average  	int        `json:"average" bson:"average"`
+        Size 		int 	   `json:"size" bson:"size"`
     }
 )
 
 
-var validQuery = []string {"Year", "Netid", "Name", "Rating", "Major", "Grade"}
+var validQuery = []string {"Id", "Year", "Netid", "Name", "Rating", "Major", "Grade"}
 
 type (
 	// studentController represents the controller for operating on the student resource
@@ -52,7 +50,6 @@ func (uc StudentController) ListStudents(w http.ResponseWriter, r *http.Request,
 	fmt.Fprintf(w, "%s", uj)
 }
 
-// Done minus NETID
 func (uc StudentController) GetStudent(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	key := r.URL.RawQuery[:strings.Index(r.URL.RawQuery, "=")]
 	value := r.URL.RawQuery[strings.Index(r.URL.RawQuery, "=")+1:]
@@ -83,9 +80,20 @@ func (uc StudentController) CreateStudent(w http.ResponseWriter, r *http.Request
 		panic(err)
 	}
 
-	json.Unmarshal([]byte(string(contents)), &u)
+	json.Unmarshal(contents, &u)
 
-	u.NetID = bson.NewObjectId()
+	u.ID = bson.NewObjectId()
+
+	count, err:= uc.session.DB("").C("students").Find(bson.M{"netid": u.NetID}).Count(); 
+	if err != nil {
+		w.WriteHeader(404)
+		return
+	}
+	fmt.Print(count)
+	if count > 0 {
+		w.WriteHeader(404)
+		return
+	}
 
 	// Write the student to mongo
 	uc.session.DB("").C("students").Insert(u)
@@ -159,7 +167,7 @@ func (uc StudentController) UpdateStudents(w http.ResponseWriter, r *http.Reques
 				grade = "C"
 			}
 			fmt.Println("Updating grade for: ",students[i].Name, " from ",students[i].Rating, " to ", grade)
-			err := uc.session.DB("").C("students").Update(bson.M{"_id": students[i].NetID},bson.M{"$set": bson.M{"rating": grade}})
+			err := uc.session.DB("").C("students").Update(bson.M{"_id": students[i].ID},bson.M{"$set": bson.M{"rating": grade}})
 			if err != nil {
 				panic(err)
 			}

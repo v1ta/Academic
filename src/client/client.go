@@ -9,19 +9,19 @@ import (
     "io/ioutil"
     "gopkg.in/mgo.v2/bson"
     "strings"
-
 )
 
 type (
     Class struct{
-        Average   int             `json:"Average" bson:"Average"`
-        Size int        `json:"size" bson:"size"`
+        Average     int        `json:"Average" bson:"Average"`
+        Size        int        `json:"size" bson:"size"`
     }
 )
 
 type (
     Student struct{
-        NetID   bson.ObjectId   `json:"_id" bson:"_id"`
+        ID      bson.ObjectId   `json:"id" bson:"_id"`
+        NetID   string          `json:"netid" bson:"netid"`
         Name    string          `json:"name" bson:"name"`
         Major   string          `json:"major" bson:"major"`
         Year    int             `json:"year" bson:"year"`
@@ -98,11 +98,10 @@ func update(url string){
 func main(){
     urlPtr := flag.String("url", "http://localhost:1234", "Usage: -url=<URL of the webservice>")
     methodPtr := flag.String("method", "", "Usage: -method=<Method to invoke on the webservice>")
-
     dataPtr := flag.String("data", "", "Usage -data='{\"JSON\":\"Object\"}')")
-
-    //netIDPtr := flag.String("netid", "", "Usage -netid=<netid>")
     yearPtr := flag.String("year", "", "Usage -year=<year>")
+    
+    //netIDPtr := flag.String("netid", "", "Usage -netid=<netid>")
     //namePtr := flag.String("name", "", "Usage -name=<name>")
     //majorPtr := flag.String("major", "", "Usage -major=<major>")
     //gradePtr := flag.String("grade", "", "Usage -grade=<grade>")
