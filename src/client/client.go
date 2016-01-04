@@ -12,14 +12,14 @@ import (
 )
 
 type (
-    Class struct{
+    Class struct {
         Average     int        `json:"Average" bson:"Average"`
         Size        int        `json:"size" bson:"size"`
     }
 )
 
 type (
-    Student struct{
+    Student struct {
         ID      bson.ObjectId   `json:"id" bson:"_id"`
         NetID   string          `json:"netid" bson:"netid"`
         Name    string          `json:"name" bson:"name"`
@@ -30,21 +30,23 @@ type (
     }
 )
 
-func list(url string)  {
+func list(url string) {
     resp, err := http.Get(url)
     if err != nil {
         panic(err)
     }
     defer resp.Body.Close()
     contents, err := ioutil.ReadAll(resp.Body)
-    if strings.Contains(url,"listall"){
+
+    if strings.Contains(url,"listall") {
         var s []Student
         json.Unmarshal(contents, &s)
+
         for i := 0; i < len(s);{
             fmt.Println(s[i])
             i++
         }
-    }else {
+    } else {
         var s Student
         json.Unmarshal(contents, &s)
         fmt.Println(s)
@@ -52,19 +54,23 @@ func list(url string)  {
 }
 
 func create(url, jsonData string) {
-        var jsonStr = []byte(jsonData)
-        resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonStr))
-        if err != nil {
-            panic(err)
-        }
-        defer resp.Body.Close()
-        contents, err := ioutil.ReadAll(resp.Body)
-        var s Student
-        json.Unmarshal(contents, &s)
-        fmt.Println(s)
+    var jsonStr = []byte(jsonData)
+    var s Student
+
+    resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonStr))
+    if err != nil {
+        panic(err)
+    }
+
+    defer resp.Body.Close()
+    contents, err := ioutil.ReadAll(resp.Body)
+    json.Unmarshal(contents, &s)
+    fmt.Println(s)
 }
 
-func delete(url, year string)  {
+func delete(url, year string) {
+    var class Class
+
     req, err := http.NewRequest("DELETE", url, nil)  
     req.Header.Set("year",year)
     if err != nil {
@@ -76,36 +82,28 @@ func delete(url, year string)  {
     }
     defer resp.Body.Close()
     contents, err := ioutil.ReadAll(resp.Body)
-    var class Class
     json.Unmarshal(contents, &class)
     fmt.Println(class.Size," student(s) removed")
 }
 
-func update(url string){
+func update(url string) {
+    var class Class
+
     resp, err := http.Get(url)
     if err != nil {
         panic(err)
     }
     defer resp.Body.Close()
     contents, err := ioutil.ReadAll(resp.Body)
-    var class Class
     json.Unmarshal(contents, &class)
     fmt.Println("Class average is: ",class.Average)
-    
-    
 }
 
-func main(){
+func main() {
     urlPtr := flag.String("url", "http://localhost:1234", "Usage: -url=<URL of the webservice>")
     methodPtr := flag.String("method", "", "Usage: -method=<Method to invoke on the webservice>")
     dataPtr := flag.String("data", "", "Usage -data='{\"JSON\":\"Object\"}')")
     yearPtr := flag.String("year", "", "Usage -year=<year>")
-    
-    //netIDPtr := flag.String("netid", "", "Usage -netid=<netid>")
-    //namePtr := flag.String("name", "", "Usage -name=<name>")
-    //majorPtr := flag.String("major", "", "Usage -major=<major>")
-    //gradePtr := flag.String("grade", "", "Usage -grade=<grade>")
-    //ratingPtr := flag.String("rating", "", "Usage -rating=<rating>")
 
     flag.Parse()
 
@@ -119,13 +117,4 @@ func main(){
     case "update":
         update(*urlPtr)
     }
-
 }
-
-/*
-go run client.go -url="http://localhost:1234/Student" -method=create -data='{"NetID":"147001234","Name":"Mike","Major":"Computer Science","Year":2015,"Grade":90,"Rating":"D"}'
-go run client.go -url="http://localhost:1234/getstudent?name=mike" -method=list
-go run client.go -url="http://localhost:1234/Student" -method=remove -year=2010
-go run client.go -url="http://localhost:1234/Student/listall" -method=list
-go run client.go -url="http://localhost:1234/Student" -method=update
-*/

@@ -19,32 +19,28 @@ type (
     }
 )
 
-
 var validQuery = []string {"Id", "Year", "Netid", "Name", "Rating", "Major", "Grade"}
 
+/* StudentController for operating on a *student resource */
 type (
-	// studentController represents the controller for operating on the student resource
 	StudentController struct {
 		session *mgo.Session
 	}
 )
 
-// NewstudentController provides a reference to a studentController with provided mongo session
+/* NewstudentController provides a reference to a studentController with provided mongo session */
 func NewStudentController(s *mgo.Session) *StudentController {
 	return &StudentController{s}
 }
 
 func (uc StudentController) ListStudents(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var students []Student
+
     err := uc.session.DB("").C("students").Find(nil).All(&students)
     if err != nil {
         panic(err)
     }
-
-	// Marshal provided interface into JSON structure
 	uj, _ := json.Marshal(students)
-
-	// Write content-type, statuscode, payload
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	fmt.Fprintf(w, "%s", uj)
@@ -55,77 +51,59 @@ func (uc StudentController) GetStudent(w http.ResponseWriter, r *http.Request, p
 	value := r.URL.RawQuery[strings.Index(r.URL.RawQuery, "=")+1:]
 
 	u := Student{}
-
-	// Fetch student
 	if err := uc.session.DB("").C("students").Find(bson.M{key: &bson.RegEx{Pattern: value, Options: "i"}}).One(&u); err != nil {
 		w.WriteHeader(404)
 		return
 	}
-
-	// Marshal provided interface into JSON structure
 	uj, _ := json.Marshal(u)
-
-	// Write content-type, statuscode, payload
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	fmt.Fprintf(w, "%s", uj)
 }
 
 func (uc StudentController) CreateStudent(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	// Stub an student to be populated from the body
 	u := Student{}
-	
 	contents, err := ioutil.ReadAll(r.Body)
+
 	if err != nil{
 		panic(err)
 	}
-
 	json.Unmarshal(contents, &u)
-
 	u.ID = bson.NewObjectId()
 
 	count, err:= uc.session.DB("").C("students").Find(bson.M{"netid": u.NetID}).Count(); 
 	if err != nil {
 		w.WriteHeader(404)
 		return
-	}
-	fmt.Print(count)
-	if count > 0 {
+	} else if count > 0 {
 		w.WriteHeader(404)
 		return
 	}
 
-	// Write the student to mongo
 	uc.session.DB("").C("students").Insert(u)
-
-	// Marshal provided interface into JSON structure
 	uj, _ := json.Marshal(u)
-
-	// Write content-type, statuscode, payload
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
 	fmt.Fprintf(w, "%s", uj)
 }
 
 func (uc StudentController) RemoveStudent(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	
     keys := make([]string, 0, len(r.Header))
+
 	for k := range r.Header {
 		if stringInSlice(k,validQuery){
     		keys = append(keys, strings.ToLower(k))
     	}
 	}
-
-	// TODO add mulit key functionaltiy 
 	key := keys[0]
 	value, err := strconv.Atoi(r.Header.Get("year"))
-		if err != nil{
+
+	if err != nil{
 		panic(err)
 	}
-
-	// Remove student(s) w/year <= value
 	query := bson.M{key: bson.M{"$lte": value}}
 	var class Class
+
 	if resp, err := uc.session.DB("").C("students").RemoveAll(query); err != nil {
 		w.WriteHeader(404)
 		return 
@@ -137,20 +115,18 @@ func (uc StudentController) RemoveStudent(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(200)
 		fmt.Fprintf(w, "%s", uj)
 	}
-
-	
 }
-
 
 func (uc StudentController) UpdateStudents(w http.ResponseWriter, r *http.Request, p httprouter.Params) { 
 	var students []Student
+	var class Class
 
 	err := uc.session.DB("").C("students").Find(nil).All(&students)
     if err != nil {
         panic(err)
     }
-
     sum := 0
+
 	for i := 0; i < len(students); i++ {
 		sum = sum + students[i].Grade
 	}
@@ -174,18 +150,11 @@ func (uc StudentController) UpdateStudents(w http.ResponseWriter, r *http.Reques
 		} 
 	}
 
-	var class Class
 	class.Average = avg
-
-
-    // Marshal provided interface into JSON structure
     uj, _ := json.Marshal(class)
-
-    // Write content-type, statuscode, payload
     w.Header().Set("Content-Type", "UTF")
     w.WriteHeader(200)
     fmt.Fprintf(w, "%s", uj)	
-
 }
 
 func stringInSlice(a string, list []string) bool {
