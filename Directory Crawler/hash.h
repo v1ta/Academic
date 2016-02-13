@@ -1,4 +1,3 @@
-//Jessica Calabretta, Daoun Oh
 #include <stdio.h>
 #include "uthash.h"
 

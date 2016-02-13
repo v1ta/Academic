@@ -1,4 +1,3 @@
-//Jessica Calabretta, Daoun Oh
 #ifndef TOKENIZER2_H
 #define TOKENIZER2_H
 
